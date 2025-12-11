@@ -60,6 +60,26 @@ export interface Seat {
   row_number: number;
   column_number: number;
   deck: string;
+  side: 'left' | 'right';
+  is_window: boolean;
+}
+
+export interface BoardingPoint {
+  id: number;
+  name: string;
+  address: string | null;
+  landmark: string | null;
+  time: string;
+  contact_number: string | null;
+}
+
+export interface DroppingPoint {
+  id: number;
+  name: string;
+  address: string | null;
+  landmark: string | null;
+  time: string;
+  contact_number: string | null;
 }
 
 export interface BusSchedule {
@@ -73,6 +93,8 @@ export interface BusSchedule {
   bus: Bus;
   route: Route;
   seats?: Seat[];
+  boarding_points?: BoardingPoint[];
+  dropping_points?: DroppingPoint[];
 }
 
 export interface Passenger {

@@ -104,12 +104,14 @@ async def search_buses(
 
 @router.get("/{schedule_id}", response_model=BusScheduleDetailResponse)
 async def get_bus_schedule(schedule_id: int, db: Session = Depends(get_db)):
-    """Get bus schedule details with seats."""
+    """Get bus schedule details with seats and boarding/dropping points."""
     schedule = db.query(BusSchedule).options(
         joinedload(BusSchedule.bus).joinedload(Bus.operator),
         joinedload(BusSchedule.route).joinedload(Route.from_city),
         joinedload(BusSchedule.route).joinedload(Route.to_city),
-        joinedload(BusSchedule.seats)
+        joinedload(BusSchedule.seats),
+        joinedload(BusSchedule.boarding_points),
+        joinedload(BusSchedule.dropping_points)
     ).filter(BusSchedule.id == schedule_id).first()
     
     if not schedule:

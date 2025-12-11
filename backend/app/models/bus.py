@@ -111,6 +111,8 @@ class BusSchedule(Base):
     route = relationship("Route", back_populates="bus_schedules")
     seats = relationship("Seat", back_populates="bus_schedule", cascade="all, delete-orphan")
     bookings = relationship("Booking", back_populates="bus_schedule")
+    boarding_points = relationship("BoardingPoint", back_populates="bus_schedule", cascade="all, delete-orphan")
+    dropping_points = relationship("DroppingPoint", back_populates="bus_schedule", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<BusSchedule bus_id={self.bus_id} date={self.travel_date}>"
@@ -124,13 +126,15 @@ class Seat(Base):
     id = Column(Integer, primary_key=True, index=True)
     bus_schedule_id = Column(Integer, ForeignKey("bus_schedules.id", ondelete="CASCADE"), nullable=False)
     seat_number = Column(String(5), nullable=False)
-    seat_type = Column(String(20), nullable=False)  # lower, upper, window, aisle, single
+    seat_type = Column(String(20), nullable=False)  # sleeper, semi-sleeper, seater
     price = Column(Float, nullable=False)
     is_available = Column(Boolean, default=True)
     is_ladies_only = Column(Boolean, default=False)
-    row_number = Column(Integer, nullable=False)
-    column_number = Column(Integer, nullable=False)
+    row_number = Column(Integer, nullable=False)  # Row from front (1, 2, 3...)
+    column_number = Column(Integer, nullable=False)  # Position in row (1, 2, 3...)
     deck = Column(String(10), default="lower")  # lower, upper
+    side = Column(String(10), default="left")  # left, right (left = window side on left, right = window side on right)
+    is_window = Column(Boolean, default=False)  # True if window seat
 
     # Relationships
     bus_schedule = relationship("BusSchedule", back_populates="seats")
@@ -138,3 +142,43 @@ class Seat(Base):
 
     def __repr__(self):
         return f"<Seat {self.seat_number}>"
+
+
+class BoardingPoint(Base):
+    """Boarding point for a bus schedule."""
+    
+    __tablename__ = "boarding_points"
+
+    id = Column(Integer, primary_key=True, index=True)
+    bus_schedule_id = Column(Integer, ForeignKey("bus_schedules.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(100), nullable=False)
+    address = Column(String(300), nullable=True)
+    landmark = Column(String(200), nullable=True)
+    time = Column(Time, nullable=False)  # Pickup time at this point
+    contact_number = Column(String(20), nullable=True)
+
+    # Relationships
+    bus_schedule = relationship("BusSchedule", back_populates="boarding_points")
+
+    def __repr__(self):
+        return f"<BoardingPoint {self.name}>"
+
+
+class DroppingPoint(Base):
+    """Dropping point for a bus schedule."""
+    
+    __tablename__ = "dropping_points"
+
+    id = Column(Integer, primary_key=True, index=True)
+    bus_schedule_id = Column(Integer, ForeignKey("bus_schedules.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(100), nullable=False)
+    address = Column(String(300), nullable=True)
+    landmark = Column(String(200), nullable=True)
+    time = Column(Time, nullable=False)  # Drop time at this point
+    contact_number = Column(String(20), nullable=True)
+
+    # Relationships
+    bus_schedule = relationship("BusSchedule", back_populates="dropping_points")
+
+    def __repr__(self):
+        return f"<DroppingPoint {self.name}>"

@@ -64,6 +64,34 @@ class SeatResponse(BaseModel):
     row_number: int
     column_number: int
     deck: str
+    side: str  # left, right
+    is_window: bool
+
+    class Config:
+        from_attributes = True
+
+
+class BoardingPointResponse(BaseModel):
+    """Schema for boarding point response."""
+    id: int
+    name: str
+    address: Optional[str]
+    landmark: Optional[str]
+    time: time
+    contact_number: Optional[str]
+
+    class Config:
+        from_attributes = True
+
+
+class DroppingPointResponse(BaseModel):
+    """Schema for dropping point response."""
+    id: int
+    name: str
+    address: Optional[str]
+    landmark: Optional[str]
+    time: time
+    contact_number: Optional[str]
 
     class Config:
         from_attributes = True
@@ -86,7 +114,7 @@ class BusScheduleResponse(BaseModel):
 
 
 class BusScheduleDetailResponse(BaseModel):
-    """Schema for bus schedule with seats."""
+    """Schema for bus schedule with seats and boarding/dropping points."""
     id: int
     travel_date: date
     departure_time: time
@@ -97,6 +125,8 @@ class BusScheduleDetailResponse(BaseModel):
     bus: BusResponse
     route: RouteResponse
     seats: List[SeatResponse]
+    boarding_points: List[BoardingPointResponse] = []
+    dropping_points: List[DroppingPointResponse] = []
 
     class Config:
         from_attributes = True

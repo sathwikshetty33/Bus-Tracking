@@ -12,7 +12,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { busService } from '../services';
-import { BusSchedule, Seat } from '../types';
+import { BusSchedule, Seat, BoardingPoint, DroppingPoint } from '../types';
 import { useAuth } from '../context/AuthContext';
 import Colors from '@/constants/Colors';
 
@@ -24,6 +24,7 @@ export default function BusDetailsScreen() {
   const [seats, setSeats] = useState<Seat[]>([]);
   const [selectedSeats, setSelectedSeats] = useState<Seat[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'seats' | 'boarding' | 'dropping'>('seats');
 
   useEffect(() => {
     loadBusDetails();
@@ -107,9 +108,61 @@ export default function BusDetailsScreen() {
 
   if (!schedule) return null;
 
-  // Group seats by deck
-  const lowerDeck = seats.filter((s) => s.deck === 'lower');
-  const upperDeck = seats.filter((s) => s.deck === 'upper');
+  // Group seats by deck, then by row, then by side
+  const renderSeatMap = (deckSeats: Seat[]) => {
+    const rows: { [key: number]: { left: Seat[]; right: Seat[] } } = {};
+    
+    deckSeats.forEach((seat) => {
+      if (!rows[seat.row_number]) {
+        rows[seat.row_number] = { left: [], right: [] };
+      }
+      if (seat.side === 'left') {
+        rows[seat.row_number].left.push(seat);
+      } else {
+        rows[seat.row_number].right.push(seat);
+      }
+    });
+
+    // Sort seats within each side by column
+    Object.values(rows).forEach((row) => {
+      row.left.sort((a, b) => a.column_number - b.column_number);
+      row.right.sort((a, b) => a.column_number - b.column_number);
+    });
+
+    return (
+      <View style={styles.seatMap}>
+        {/* Driver indicator */}
+        <View style={styles.driverRow}>
+          <View style={styles.steeringWheel}>
+            <FontAwesome name="circle-o" size={20} color="#9CA3AF" />
+          </View>
+          <Text style={styles.driverText}>Driver</Text>
+        </View>
+
+        {Object.keys(rows)
+          .sort((a, b) => parseInt(a) - parseInt(b))
+          .map((rowNum) => {
+            const row = rows[parseInt(rowNum)];
+            return (
+              <View key={rowNum} style={styles.seatRow}>
+                {/* Left side seats */}
+                <View style={styles.sideSeats}>
+                  {row.left.map((seat) => renderSeat(seat))}
+                </View>
+                
+                {/* Aisle */}
+                <View style={styles.aisle} />
+                
+                {/* Right side seats */}
+                <View style={styles.sideSeats}>
+                  {row.right.map((seat) => renderSeat(seat))}
+                </View>
+              </View>
+            );
+          })}
+      </View>
+    );
+  };
 
   const renderSeat = (seat: Seat) => {
     const seatStyle = getSeatStyle(seat);
@@ -121,6 +174,7 @@ export default function BusDetailsScreen() {
         style={[
           styles.seat,
           { backgroundColor: seatStyle.bg, borderColor: seatStyle.border },
+          seat.is_window && styles.windowSeat,
         ]}
         onPress={() => toggleSeat(seat)}
         disabled={!seat.is_available}
@@ -134,35 +188,40 @@ export default function BusDetailsScreen() {
         >
           {seat.seat_number}
         </Text>
-        <Text style={[styles.seatPrice, isSelected && styles.selectedSeatText]}>
-          ₹{seat.price.toFixed(0)}
-        </Text>
+        {seat.is_window && (
+          <View style={[styles.windowIndicator, isSelected && { backgroundColor: '#fff' }]} />
+        )}
       </TouchableOpacity>
     );
   };
 
-  const renderDeck = (deckSeats: Seat[], title: string) => {
-    const rows: { [key: number]: Seat[] } = {};
-    deckSeats.forEach((seat) => {
-      if (!rows[seat.row_number]) rows[seat.row_number] = [];
-      rows[seat.row_number].push(seat);
-    });
+  const lowerDeck = seats.filter((s) => s.deck === 'lower');
+  const upperDeck = seats.filter((s) => s.deck === 'upper');
 
-    return (
-      <View style={styles.deckSection}>
-        <Text style={styles.deckTitle}>{title}</Text>
-        <View style={styles.seatLayout}>
-          {Object.keys(rows).map((rowNum) => (
-            <View key={rowNum} style={styles.seatRow}>
-              {rows[parseInt(rowNum)]
-                .sort((a, b) => a.column_number - b.column_number)
-                .map(renderSeat)}
-            </View>
-          ))}
-        </View>
+  const renderBoardingPoint = (point: BoardingPoint) => (
+    <View key={point.id} style={styles.pointCard}>
+      <View style={styles.pointTimeContainer}>
+        <Text style={styles.pointTime}>{point.time.slice(0, 5)}</Text>
       </View>
-    );
-  };
+      <View style={styles.pointInfo}>
+        <Text style={styles.pointName}>{point.name}</Text>
+        {point.landmark && <Text style={styles.pointLandmark}>📍 {point.landmark}</Text>}
+        {point.contact_number && <Text style={styles.pointContact}>📞 {point.contact_number}</Text>}
+      </View>
+    </View>
+  );
+
+  const renderDroppingPoint = (point: DroppingPoint) => (
+    <View key={point.id} style={styles.pointCard}>
+      <View style={[styles.pointTimeContainer, { backgroundColor: '#E8F5E9' }]}>
+        <Text style={[styles.pointTime, { color: Colors.success }]}>{point.time.slice(0, 5)}</Text>
+      </View>
+      <View style={styles.pointInfo}>
+        <Text style={styles.pointName}>{point.name}</Text>
+        {point.landmark && <Text style={styles.pointLandmark}>📍 {point.landmark}</Text>}
+      </View>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
@@ -175,7 +234,7 @@ export default function BusDetailsScreen() {
       >
         <Text style={styles.operatorName}>{schedule.bus.operator.name}</Text>
         <Text style={styles.busInfo}>
-          {schedule.bus.bus_type.toUpperCase()} • {schedule.bus.bus_number}
+          {schedule.bus.bus_type.toUpperCase()} • {schedule.bus.seat_layout} Layout
         </Text>
         <View style={styles.routeInfo}>
           <Text style={styles.routeText}>
@@ -187,31 +246,92 @@ export default function BusDetailsScreen() {
         </Text>
       </LinearGradient>
 
-      {/* Legend */}
-      <View style={styles.legend}>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendBox, { backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E7EB' }]} />
-          <Text style={styles.legendText}>Available</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendBox, { backgroundColor: Colors.success }]} />
-          <Text style={styles.legendText}>Selected</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendBox, { backgroundColor: '#E5E7EB' }]} />
-          <Text style={styles.legendText}>Booked</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendBox, { backgroundColor: '#FCE7F3', borderWidth: 1, borderColor: '#EC4899' }]} />
-          <Text style={styles.legendText}>Ladies</Text>
-        </View>
+      {/* Tabs */}
+      <View style={styles.tabs}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'seats' && styles.activeTab]}
+          onPress={() => setActiveTab('seats')}
+        >
+          <Text style={[styles.tabText, activeTab === 'seats' && styles.activeTabText]}>Seats</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'boarding' && styles.activeTab]}
+          onPress={() => setActiveTab('boarding')}
+        >
+          <Text style={[styles.tabText, activeTab === 'boarding' && styles.activeTabText]}>Boarding</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'dropping' && styles.activeTab]}
+          onPress={() => setActiveTab('dropping')}
+        >
+          <Text style={[styles.tabText, activeTab === 'dropping' && styles.activeTabText]}>Dropping</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Seat Map */}
-      <ScrollView style={styles.seatContainer} showsVerticalScrollIndicator={false}>
-        {lowerDeck.length > 0 && renderDeck(lowerDeck, 'Lower Deck')}
-        {upperDeck.length > 0 && renderDeck(upperDeck, 'Upper Deck')}
-        <View style={{ height: 100 }} />
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {activeTab === 'seats' && (
+          <>
+            {/* Legend */}
+            <View style={styles.legend}>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendBox, { backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E7EB' }]} />
+                <Text style={styles.legendText}>Available</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendBox, { backgroundColor: Colors.success }]} />
+                <Text style={styles.legendText}>Selected</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendBox, { backgroundColor: '#E5E7EB' }]} />
+                <Text style={styles.legendText}>Booked</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendBox, { backgroundColor: '#FCE7F3' }]} />
+                <Text style={styles.legendText}>Ladies</Text>
+              </View>
+            </View>
+
+            {lowerDeck.length > 0 && (
+              <View style={styles.deckSection}>
+                <Text style={styles.deckTitle}>Lower Deck</Text>
+                <View style={styles.deckContainer}>
+                  {renderSeatMap(lowerDeck)}
+                </View>
+              </View>
+            )}
+            
+            {upperDeck.length > 0 && (
+              <View style={styles.deckSection}>
+                <Text style={styles.deckTitle}>Upper Deck</Text>
+                <View style={styles.deckContainer}>
+                  {renderSeatMap(upperDeck)}
+                </View>
+              </View>
+            )}
+          </>
+        )}
+
+        {activeTab === 'boarding' && (
+          <View style={styles.pointsSection}>
+            <Text style={styles.pointsSectionTitle}>Boarding Points</Text>
+            {schedule.boarding_points?.map(renderBoardingPoint)}
+            {(!schedule.boarding_points || schedule.boarding_points.length === 0) && (
+              <Text style={styles.noPoints}>No boarding points available</Text>
+            )}
+          </View>
+        )}
+
+        {activeTab === 'dropping' && (
+          <View style={styles.pointsSection}>
+            <Text style={styles.pointsSectionTitle}>Dropping Points</Text>
+            {schedule.dropping_points?.map(renderDroppingPoint)}
+            {(!schedule.dropping_points || schedule.dropping_points.length === 0) && (
+              <Text style={styles.noPoints}>No dropping points available</Text>
+            )}
+          </View>
+        )}
+
+        <View style={{ height: 120 }} />
       </ScrollView>
 
       {/* Bottom Bar */}
@@ -280,13 +400,40 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.9)',
     marginTop: 6,
   },
+  tabs: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  activeTab: {
+    borderBottomWidth: 2,
+    borderBottomColor: Colors.primary,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  activeTabText: {
+    color: Colors.primary,
+    fontWeight: '600',
+  },
+  content: {
+    flex: 1,
+  },
   legend: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     padding: 14,
     backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    marginBottom: 10,
   },
   legendItem: {
     flexDirection: 'row',
@@ -303,12 +450,9 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontWeight: '500',
   },
-  seatContainer: {
-    flex: 1,
-    padding: 16,
-  },
   deckSection: {
-    marginBottom: 28,
+    marginBottom: 20,
+    paddingHorizontal: 16,
   },
   deckTitle: {
     fontSize: 16,
@@ -317,39 +461,75 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     textAlign: 'center',
   },
-  seatLayout: {
+  deckContainer: {
     backgroundColor: '#fff',
     borderRadius: 16,
-    padding: 20,
+    padding: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 4,
   },
+  seatMap: {
+    alignItems: 'center',
+  },
+  driverRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    width: '100%',
+    justifyContent: 'flex-end',
+    paddingRight: 10,
+  },
+  steeringWheel: {
+    marginRight: 8,
+  },
+  driverText: {
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
   seatRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 10,
   },
+  sideSeats: {
+    flexDirection: 'row',
+  },
+  aisle: {
+    width: 30,
+    height: 40,
+  },
   seat: {
-    width: 56,
-    height: 48,
-    marginHorizontal: 5,
+    width: 44,
+    height: 44,
+    marginHorizontal: 4,
     borderRadius: 8,
     borderWidth: 1.5,
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative',
+  },
+  windowSeat: {
+    borderRadius: 8,
+  },
+  windowIndicator: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#60A5FA',
   },
   seatNumber: {
     fontSize: 11,
     fontWeight: '700',
     color: '#374151',
-  },
-  seatPrice: {
-    fontSize: 9,
-    color: '#6B7280',
-    marginTop: 2,
   },
   unavailableSeatText: {
     color: '#9CA3AF',
@@ -357,7 +537,68 @@ const styles = StyleSheet.create({
   selectedSeatText: {
     color: '#fff',
   },
+  pointsSection: {
+    padding: 16,
+  },
+  pointsSectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1A2E',
+    marginBottom: 16,
+  },
+  pointCard: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  pointTimeContainer: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginRight: 14,
+  },
+  pointTime: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.primary,
+  },
+  pointInfo: {
+    flex: 1,
+  },
+  pointName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1A1A2E',
+    marginBottom: 4,
+  },
+  pointLandmark: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginBottom: 2,
+  },
+  pointContact: {
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
+  noPoints: {
+    textAlign: 'center',
+    color: '#9CA3AF',
+    fontSize: 14,
+    marginTop: 20,
+  },
   bottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,

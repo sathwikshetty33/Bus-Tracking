@@ -6,8 +6,11 @@ from .bus import (
     OperatorResponse, 
     BusResponse, 
     BusScheduleResponse,
+    BusScheduleDetailResponse,
     BusSearchRequest,
-    SeatResponse
+    SeatResponse,
+    BoardingPointResponse,
+    DroppingPointResponse
 )
 from .booking import (
     BookingCreate,
