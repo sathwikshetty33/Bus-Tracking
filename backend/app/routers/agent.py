@@ -93,7 +93,7 @@ async def chat_with_agent(
             from ..agent import get_agent
             
             agent = get_agent()
-            response_text = await agent.chat(
+            response_text = agent.chat(
                 message=request.message,
                 user_id=current_user.id,
                 session_id=session.session_id,

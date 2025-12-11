@@ -8,7 +8,6 @@ from typing import List, Optional
 from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langgraph.prebuilt import create_react_agent
-from langgraph.checkpoint.memory import MemorySaver
 
 from .tools import booking_tools
 
@@ -62,23 +61,6 @@ When user asks about wallet:
 When user asks about their bookings:
 - Use `get_user_bookings(user_id)` to show recent bookings
 
-### EXAMPLES:
-
-**User:** "Find buses from Bangalore to Goa tomorrow"
-**You:** [Call search_buses] → Show available buses with prices
-
-**User:** "Show me seats for bus schedule 15"
-**You:** [Call get_seat_availability(15)] → Show available seats
-
-**User:** "Book seat L5 for me"
-**You:** "Great! I'll book seat L5. Please provide:
-1. Passenger name
-2. Age
-3. Gender (male/female/other)"
-
-**User:** "My name is Rahul, age 25, male"
-**You:** [Call book_seats with details] → Confirm booking
-
 ### IMPORTANT NOTES:
 - Always be helpful and conversational
 - If user's request is unclear, ask clarifying questions
@@ -86,6 +68,7 @@ When user asks about their bookings:
 - Include emojis to make responses friendly 🚌
 - For dates, help users understand the format (YYYY-MM-DD)
 - Always confirm before making a booking
+- The user_id is provided in the message as [User ID: X]
 """
 
 
@@ -104,29 +87,14 @@ class BusBookingAgent:
             api_key=groq_api_key
         )
         
-        # Create memory saver for conversation history
-        self.memory = MemorySaver()
-        
-        # Create the agent
+        # Create the agent using langgraph
         self.agent = create_react_agent(
             model=self.llm,
             tools=booking_tools,
-            checkpointer=self.memory
+            state_modifier=SYSTEM_PROMPT
         )
     
-    def get_chat_history(self, messages: List[dict]) -> List:
-        """Convert chat history to LangChain messages."""
-        history = [SystemMessage(content=SYSTEM_PROMPT)]
-        
-        for msg in messages:
-            if msg["role"] == "user":
-                history.append(HumanMessage(content=msg["content"]))
-            elif msg["role"] == "assistant":
-                history.append(AIMessage(content=msg["content"]))
-        
-        return history
-    
-    async def chat(
+    def chat(
         self,
         message: str,
         user_id: int,
@@ -146,12 +114,12 @@ class BusBookingAgent:
             Agent's response text
         """
         try:
-            # Build messages
-            messages = [SystemMessage(content=SYSTEM_PROMPT)]
+            # Build messages list
+            messages = []
             
             # Add chat history if available
             if chat_history:
-                for msg in chat_history[-10:]:  # Keep last 10 messages for context
+                for msg in chat_history[-10:]:  # Keep last 10 messages
                     if msg["role"] == "user":
                         messages.append(HumanMessage(content=msg["content"]))
                     elif msg["role"] == "assistant":
@@ -161,14 +129,10 @@ class BusBookingAgent:
             user_context = f"[User ID: {user_id}] {message}"
             messages.append(HumanMessage(content=user_context))
             
-            # Configure thread for memory
-            config = {"configurable": {"thread_id": session_id}}
-            
             # Run the agent
-            result = await self.agent.ainvoke(
-                {"messages": messages},
-                config=config
-            )
+            result = self.agent.invoke({
+                "messages": messages
+            })
             
             # Extract the final response
             if result and "messages" in result:
@@ -180,6 +144,8 @@ class BusBookingAgent:
             
         except Exception as e:
             print(f"Agent error: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return f"I encountered an error: {str(e)}. Please try again."
 
 
