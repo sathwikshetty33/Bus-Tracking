@@ -4,10 +4,7 @@ from sqlalchemy.orm import sessionmaker
 import os
 
 # PostgreSQL URL from environment or default
-DATABASE_URL = os.getenv(
-    "DATABASE_URL"
-)
-
+DATABASE_URL = "postgresql://neondb_owner:npg_FJDsUx3kS4fc@ep-polished-cherry-a1a65qyd-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
 # Create PostgreSQL engine
 engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 

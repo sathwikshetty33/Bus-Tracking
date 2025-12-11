@@ -373,7 +373,7 @@ def create_boarding_dropping_bulk(db: Session):
         # Boarding points
         for j, (name, landmark) in enumerate(boarding_templates):
             bp = BoardingPoint(
-                schedule_id=schedule.id,
+                bus_schedule_id=schedule.id,
                 name=name,
                 time=time((dep_hour + j * 15 // 60) % 24, (j * 15) % 60),
                 landmark=landmark,
@@ -385,7 +385,7 @@ def create_boarding_dropping_bulk(db: Session):
         # Dropping points
         for j, (name, landmark) in enumerate(dropping_templates):
             dp = DroppingPoint(
-                schedule_id=schedule.id,
+                bus_schedule_id=schedule.id,
                 name=name,
                 time=time((arr_hour + j * 10 // 60) % 24, (j * 10) % 60),
                 landmark=landmark,
@@ -413,17 +413,43 @@ def seed_database():
     db = SessionLocal()
     
     try:
-        # Clear existing data
+        # Clear existing data (order matters due to foreign key constraints)
         print("🗑️ Clearing existing data...")
-        db.query(Seat).delete()
-        db.query(BoardingPoint).delete()
-        db.query(DroppingPoint).delete()
-        db.query(BusSchedule).delete()
-        db.query(Bus).delete()
-        db.query(Route).delete()
+        
+        # Use TRUNCATE CASCADE to handle all foreign key constraints
+        from sqlalchemy import text
+        
+        # Tables to truncate (order doesn't matter with CASCADE)
+        tables_to_clear = [
+            "booking_passengers",
+            "bookings", 
+            "chat_messages",
+            "chat_sessions",
+            "seats",
+            "boarding_points",
+            "dropping_points",
+            "bus_schedules",
+            "buses",
+            "routes",
+            # Don't delete cities and operators to preserve references
+        ]
+        
+        for table in tables_to_clear:
+            try:
+                db.execute(text(f"TRUNCATE TABLE {table} CASCADE"))
+            except Exception as e:
+                # Table might not exist, that's okay
+                db.rollback()
+                print(f"  ⚠️ Could not truncate {table}: {str(e)[:50]}...")
+        
+        db.commit()
+        print("  ✓ Cleared existing data")
+        
+        # Delete cities and operators separately
         db.query(City).delete()
         db.query(Operator).delete()
         db.commit()
+        print("  ✓ Cleared master data")
         
         # Create data
         operators = create_operators(db)
