@@ -5,13 +5,16 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  View,
+  Text,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Text, View } from '@/components/Themed';
+import { LinearGradient } from 'expo-linear-gradient';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { busService } from '../services';
 import { BusSchedule, Seat } from '../types';
 import { useAuth } from '../context/AuthContext';
+import Colors from '@/constants/Colors';
 
 export default function BusDetailsScreen() {
   const router = useRouter();
@@ -87,17 +90,17 @@ export default function BusDetailsScreen() {
     });
   };
 
-  const getSeatColor = (seat: Seat) => {
-    if (!seat.is_available) return '#ddd';
-    if (selectedSeats.find((s) => s.id === seat.id)) return '#4CAF50';
-    if (seat.is_ladies_only) return '#E91E63';
-    return '#fff';
+  const getSeatStyle = (seat: Seat) => {
+    if (!seat.is_available) return { bg: '#E5E7EB', border: '#E5E7EB' };
+    if (selectedSeats.find((s) => s.id === seat.id)) return { bg: Colors.success, border: Colors.success };
+    if (seat.is_ladies_only) return { bg: '#FCE7F3', border: '#EC4899' };
+    return { bg: '#fff', border: '#E5E7EB' };
   };
 
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color={Colors.primary} />
       </View>
     );
   }
@@ -108,32 +111,37 @@ export default function BusDetailsScreen() {
   const lowerDeck = seats.filter((s) => s.deck === 'lower');
   const upperDeck = seats.filter((s) => s.deck === 'upper');
 
-  const renderSeat = (seat: Seat) => (
-    <TouchableOpacity
-      key={seat.id}
-      style={[
-        styles.seat,
-        { backgroundColor: getSeatColor(seat) },
-        !seat.is_available && styles.unavailableSeat,
-      ]}
-      onPress={() => toggleSeat(seat)}
-      disabled={!seat.is_available}
-    >
-      <Text
+  const renderSeat = (seat: Seat) => {
+    const seatStyle = getSeatStyle(seat);
+    const isSelected = selectedSeats.find((s) => s.id === seat.id);
+    
+    return (
+      <TouchableOpacity
+        key={seat.id}
         style={[
-          styles.seatNumber,
-          !seat.is_available && styles.unavailableSeatText,
-          selectedSeats.find((s) => s.id === seat.id) && styles.selectedSeatText,
+          styles.seat,
+          { backgroundColor: seatStyle.bg, borderColor: seatStyle.border },
         ]}
+        onPress={() => toggleSeat(seat)}
+        disabled={!seat.is_available}
       >
-        {seat.seat_number}
-      </Text>
-      <Text style={styles.seatPrice}>₹{seat.price.toFixed(0)}</Text>
-    </TouchableOpacity>
-  );
+        <Text
+          style={[
+            styles.seatNumber,
+            !seat.is_available && styles.unavailableSeatText,
+            isSelected && styles.selectedSeatText,
+          ]}
+        >
+          {seat.seat_number}
+        </Text>
+        <Text style={[styles.seatPrice, isSelected && styles.selectedSeatText]}>
+          ₹{seat.price.toFixed(0)}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
 
   const renderDeck = (deckSeats: Seat[], title: string) => {
-    // Group by rows
     const rows: { [key: number]: Seat[] } = {};
     deckSeats.forEach((seat) => {
       if (!rows[seat.row_number]) rows[seat.row_number] = [];
@@ -159,7 +167,12 @@ export default function BusDetailsScreen() {
   return (
     <View style={styles.container}>
       {/* Bus Info Header */}
-      <View style={styles.header}>
+      <LinearGradient
+        colors={[Colors.primary, '#FF6B6B']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.header}
+      >
         <Text style={styles.operatorName}>{schedule.bus.operator.name}</Text>
         <Text style={styles.busInfo}>
           {schedule.bus.bus_type.toUpperCase()} • {schedule.bus.bus_number}
@@ -168,36 +181,37 @@ export default function BusDetailsScreen() {
           <Text style={styles.routeText}>
             {schedule.route.from_city.name} → {schedule.route.to_city.name}
           </Text>
-          <Text style={styles.dateText}>
-            {schedule.travel_date} • {schedule.departure_time.slice(0, 5)}
-          </Text>
         </View>
-      </View>
+        <Text style={styles.dateText}>
+          📅 {schedule.travel_date} • 🕐 {schedule.departure_time.slice(0, 5)}
+        </Text>
+      </LinearGradient>
 
       {/* Legend */}
       <View style={styles.legend}>
         <View style={styles.legendItem}>
-          <View style={[styles.legendBox, { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd' }]} />
+          <View style={[styles.legendBox, { backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E7EB' }]} />
           <Text style={styles.legendText}>Available</Text>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.legendBox, { backgroundColor: '#4CAF50' }]} />
+          <View style={[styles.legendBox, { backgroundColor: Colors.success }]} />
           <Text style={styles.legendText}>Selected</Text>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.legendBox, { backgroundColor: '#ddd' }]} />
+          <View style={[styles.legendBox, { backgroundColor: '#E5E7EB' }]} />
           <Text style={styles.legendText}>Booked</Text>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.legendBox, { backgroundColor: '#E91E63' }]} />
+          <View style={[styles.legendBox, { backgroundColor: '#FCE7F3', borderWidth: 1, borderColor: '#EC4899' }]} />
           <Text style={styles.legendText}>Ladies</Text>
         </View>
       </View>
 
       {/* Seat Map */}
-      <ScrollView style={styles.seatContainer}>
+      <ScrollView style={styles.seatContainer} showsVerticalScrollIndicator={false}>
         {lowerDeck.length > 0 && renderDeck(lowerDeck, 'Lower Deck')}
         {upperDeck.length > 0 && renderDeck(upperDeck, 'Upper Deck')}
+        <View style={{ height: 100 }} />
       </ScrollView>
 
       {/* Bottom Bar */}
@@ -211,8 +225,17 @@ export default function BusDetailsScreen() {
         <TouchableOpacity
           style={[styles.continueButton, selectedSeats.length === 0 && styles.continueButtonDisabled]}
           onPress={handleContinue}
+          disabled={selectedSeats.length === 0}
         >
-          <Text style={styles.continueButtonText}>Continue</Text>
+          <LinearGradient
+            colors={selectedSeats.length > 0 ? [Colors.success, '#00C853'] : ['#D1D5DB', '#D1D5DB']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.continueButtonGradient}
+          >
+            <Text style={styles.continueButtonText}>Continue</Text>
+            <FontAwesome name="arrow-right" size={14} color="#fff" style={{ marginLeft: 8 }} />
+          </LinearGradient>
         </TouchableOpacity>
       </View>
     </View>
@@ -222,106 +245,114 @@ export default function BusDetailsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F8F9FD',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#F8F9FD',
   },
   header: {
-    padding: 16,
-    backgroundColor: '#007AFF',
+    padding: 20,
+    paddingTop: 16,
   },
   operatorName: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#fff',
   },
   busInfo: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: 2,
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: 3,
   },
   routeInfo: {
-    marginTop: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    marginTop: 14,
   },
   routeText: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#fff',
+    fontWeight: '600',
   },
   dateText: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.8)',
+    color: 'rgba(255,255,255,0.9)',
+    marginTop: 6,
   },
   legend: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    padding: 12,
-    backgroundColor: '#f9f9f9',
+    padding: 14,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   legendBox: {
-    width: 16,
-    height: 16,
-    borderRadius: 3,
+    width: 18,
+    height: 18,
+    borderRadius: 4,
     marginRight: 6,
   },
   legendText: {
     fontSize: 11,
-    color: '#666',
+    color: '#6B7280',
+    fontWeight: '500',
   },
   seatContainer: {
     flex: 1,
     padding: 16,
   },
   deckSection: {
-    marginBottom: 24,
+    marginBottom: 28,
   },
   deckTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 12,
+    fontWeight: '700',
+    color: '#1A1A2E',
+    marginBottom: 14,
     textAlign: 'center',
   },
   seatLayout: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
   },
   seatRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   seat: {
-    width: 60,
-    height: 50,
-    marginHorizontal: 4,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#ddd',
+    width: 56,
+    height: 48,
+    marginHorizontal: 5,
+    borderRadius: 8,
+    borderWidth: 1.5,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  unavailableSeat: {
-    backgroundColor: '#ddd',
-  },
   seatNumber: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#374151',
   },
   seatPrice: {
-    fontSize: 10,
-    color: '#666',
+    fontSize: 9,
+    color: '#6B7280',
     marginTop: 2,
   },
   unavailableSeatText: {
-    color: '#999',
+    color: '#9CA3AF',
   },
   selectedSeatText: {
     color: '#fff',
@@ -332,32 +363,41 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: '#fff',
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: '#F3F4F6',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 10,
   },
   selectionInfo: {
     flex: 1,
   },
   selectedCount: {
     fontSize: 13,
-    color: '#666',
+    color: '#6B7280',
   },
   totalAmount: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#007AFF',
+    color: Colors.primary,
   },
   continueButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 32,
-    paddingVertical: 14,
-    borderRadius: 8,
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   continueButtonDisabled: {
-    backgroundColor: '#ccc',
+    opacity: 0.6,
+  },
+  continueButtonGradient: {
+    flexDirection: 'row',
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+    alignItems: 'center',
   },
   continueButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });

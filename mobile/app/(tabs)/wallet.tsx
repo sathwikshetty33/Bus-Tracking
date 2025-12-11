@@ -8,13 +8,16 @@ import {
   RefreshControl,
   Alert,
   Modal,
+  View,
+  Text,
 } from 'react-native';
 import { Link } from 'expo-router';
-import { Text, View } from '@/components/Themed';
+import { LinearGradient } from 'expo-linear-gradient';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { walletService } from '../../services';
 import { Wallet, Transaction } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import Colors from '@/constants/Colors';
 
 export default function WalletScreen() {
   const { isAuthenticated } = useAuth();
@@ -79,11 +82,21 @@ export default function WalletScreen() {
   if (!isAuthenticated) {
     return (
       <View style={styles.centerContainer}>
-        <FontAwesome name="credit-card" size={48} color="#ccc" />
+        <View style={styles.emptyIcon}>
+          <FontAwesome name="credit-card" size={40} color={Colors.primary} />
+        </View>
         <Text style={styles.emptyTitle}>Login to view your wallet</Text>
+        <Text style={styles.emptySubtitle}>Manage your balance and transactions</Text>
         <Link href="/(auth)/login" asChild>
           <TouchableOpacity style={styles.loginButton}>
-            <Text style={styles.loginButtonText}>Login</Text>
+            <LinearGradient
+              colors={[Colors.primary, Colors.secondary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.loginButtonGradient}
+            >
+              <Text style={styles.loginButtonText}>Login</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </Link>
       </View>
@@ -93,18 +106,18 @@ export default function WalletScreen() {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color={Colors.primary} />
       </View>
     );
   }
 
   const renderTransaction = ({ item }: { item: Transaction }) => (
     <View style={styles.transactionItem}>
-      <View style={styles.transactionIcon}>
+      <View style={[styles.transactionIcon, { backgroundColor: item.type === 'credit' ? '#E8F5E9' : '#FFEBEE' }]}>
         <FontAwesome
           name={item.type === 'credit' ? 'arrow-down' : 'arrow-up'}
-          size={16}
-          color={item.type === 'credit' ? '#4CAF50' : '#F44336'}
+          size={14}
+          color={item.type === 'credit' ? Colors.success : Colors.error}
         />
       </View>
       <View style={styles.transactionInfo}>
@@ -116,7 +129,7 @@ export default function WalletScreen() {
       <Text
         style={[
           styles.transactionAmount,
-          { color: item.type === 'credit' ? '#4CAF50' : '#F44336' },
+          { color: item.type === 'credit' ? Colors.success : Colors.error },
         ]}
       >
         {item.type === 'credit' ? '+' : '-'}₹{item.amount.toFixed(0)}
@@ -129,20 +142,26 @@ export default function WalletScreen() {
   return (
     <View style={styles.container}>
       {/* Wallet Card */}
-      <View style={styles.walletCard}>
+      <LinearGradient
+        colors={[Colors.primary, '#FF6B6B']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.walletCard}
+      >
         <Text style={styles.balanceLabel}>Available Balance</Text>
         <Text style={styles.balanceAmount}>₹{wallet?.balance.toFixed(2) || '0.00'}</Text>
         <TouchableOpacity style={styles.addButton} onPress={() => setShowAddModal(true)}>
-          <FontAwesome name="plus" size={14} color="#fff" />
+          <FontAwesome name="plus" size={12} color={Colors.primary} />
           <Text style={styles.addButtonText}>Add Money</Text>
         </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
       {/* Transactions */}
       <View style={styles.transactionsSection}>
         <Text style={styles.sectionTitle}>Recent Transactions</Text>
         {transactions.length === 0 ? (
           <View style={styles.emptyTransactions}>
+            <FontAwesome name="history" size={32} color="#D1D5DB" />
             <Text style={styles.emptyText}>No transactions yet</Text>
           </View>
         ) : (
@@ -150,7 +169,8 @@ export default function WalletScreen() {
             data={transactions}
             renderItem={renderTransaction}
             keyExtractor={(item) => item.id.toString()}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />}
+            showsVerticalScrollIndicator={false}
           />
         )}
       </View>
@@ -162,7 +182,7 @@ export default function WalletScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Add Money</Text>
               <TouchableOpacity onPress={() => setShowAddModal(false)}>
-                <FontAwesome name="times" size={20} color="#666" />
+                <FontAwesome name="times" size={20} color="#6B7280" />
               </TouchableOpacity>
             </View>
 
@@ -170,7 +190,7 @@ export default function WalletScreen() {
             <TextInput
               style={styles.amountInput}
               placeholder="₹0"
-              placeholderTextColor="#ccc"
+              placeholderTextColor="#D1D5DB"
               value={amount}
               onChangeText={setAmount}
               keyboardType="numeric"
@@ -201,11 +221,18 @@ export default function WalletScreen() {
               onPress={handleAddMoney}
               disabled={adding}
             >
-              {adding ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.confirmButtonText}>Add ₹{amount || '0'}</Text>
-              )}
+              <LinearGradient
+                colors={[Colors.primary, Colors.secondary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.confirmButtonGradient}
+              >
+                {adding ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.confirmButtonText}>Add ₹{amount || '0'}</Text>
+                )}
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         </View>
@@ -217,61 +244,84 @@ export default function WalletScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F8F9FD',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    backgroundColor: '#F8F9FD',
+  },
+  emptyIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FEE2E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginTop: 16,
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1A1A2E',
     marginBottom: 8,
   },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 24,
+  },
   loginButton: {
-    marginTop: 20,
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  loginButtonGradient: {
+    paddingHorizontal: 48,
+    paddingVertical: 14,
   },
   loginButtonText: {
     color: '#fff',
-    fontWeight: '600',
+    fontWeight: '700',
     fontSize: 16,
   },
   walletCard: {
     margin: 16,
-    padding: 24,
-    borderRadius: 16,
-    backgroundColor: '#007AFF',
+    padding: 28,
+    borderRadius: 20,
     alignItems: 'center',
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
   balanceLabel: {
-    color: 'rgba(255,255,255,0.8)',
+    color: 'rgba(255,255,255,0.85)',
     fontSize: 14,
+    fontWeight: '500',
     marginBottom: 8,
   },
   balanceAmount: {
     color: '#fff',
-    fontSize: 36,
+    fontSize: 42,
     fontWeight: 'bold',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
+    backgroundColor: '#fff',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 25,
   },
   addButtonText: {
-    color: '#fff',
-    fontWeight: '600',
+    color: Colors.primary,
+    fontWeight: '700',
     marginLeft: 8,
+    fontSize: 14,
   },
   transactionsSection: {
     flex: 1,
@@ -279,48 +329,56 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 12,
+    fontWeight: '700',
+    color: '#1A1A2E',
+    marginBottom: 16,
   },
   transactionItem: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
     padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
+    borderRadius: 14,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   transactionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#f5f5f5',
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     justifyContent: 'center',
     alignItems: 'center',
   },
   transactionInfo: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 14,
   },
   transactionDesc: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
+    color: '#1A1A2E',
   },
   transactionDate: {
     fontSize: 12,
-    color: '#999',
-    marginTop: 2,
+    color: '#9CA3AF',
+    marginTop: 3,
   },
   transactionAmount: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   emptyTransactions: {
-    padding: 40,
+    padding: 50,
     alignItems: 'center',
   },
   emptyText: {
-    color: '#999',
+    color: '#9CA3AF',
+    marginTop: 12,
+    fontSize: 14,
   },
   modalOverlay: {
     flex: 1,
@@ -329,8 +387,8 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     padding: 24,
     paddingBottom: 40,
   },
@@ -341,63 +399,70 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
+    color: '#1A1A2E',
   },
   inputLabel: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 13,
+    color: '#6B7280',
     marginBottom: 8,
+    fontWeight: '500',
   },
   amountInput: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: 'bold',
     textAlign: 'center',
     paddingVertical: 16,
     borderBottomWidth: 2,
-    borderBottomColor: '#007AFF',
+    borderBottomColor: Colors.primary,
     marginBottom: 24,
+    color: '#1A1A2E',
   },
   quickLabel: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 13,
+    color: '#6B7280',
     marginBottom: 12,
+    fontWeight: '500',
   },
   quickAmounts: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 24,
+    marginBottom: 28,
   },
   quickButton: {
     flex: 1,
     marginHorizontal: 4,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: '#f5f5f5',
+    paddingVertical: 14,
+    borderRadius: 10,
+    backgroundColor: '#F3F4F6',
     alignItems: 'center',
   },
   quickButtonActive: {
-    backgroundColor: '#007AFF',
+    backgroundColor: Colors.primary,
   },
   quickButtonText: {
     fontWeight: '600',
-    color: '#333',
+    color: '#374151',
+    fontSize: 14,
   },
   quickButtonTextActive: {
     color: '#fff',
   },
   confirmButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
+    borderRadius: 14,
+    overflow: 'hidden',
   },
   confirmButtonDisabled: {
     opacity: 0.7,
   },
+  confirmButtonGradient: {
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
   confirmButtonText: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
   },
 });

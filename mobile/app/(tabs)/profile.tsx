@@ -1,9 +1,10 @@
 import React from 'react';
-import { StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { StyleSheet, TouchableOpacity, Alert, ScrollView, View, Text } from 'react-native';
 import { Link, useRouter } from 'expo-router';
-import { Text, View } from '@/components/Themed';
+import { LinearGradient } from 'expo-linear-gradient';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useAuth } from '../../context/AuthContext';
+import Colors from '@/constants/Colors';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -26,12 +27,21 @@ export default function ProfileScreen() {
   if (!isAuthenticated) {
     return (
       <View style={styles.centerContainer}>
-        <FontAwesome name="user-circle" size={64} color="#ccc" />
-        <Text style={styles.emptyTitle}>Welcome to BusBook</Text>
-        <Text style={styles.emptySubtitle}>Login to manage your account</Text>
+        <View style={styles.emptyIcon}>
+          <FontAwesome name="user" size={40} color={Colors.primary} />
+        </View>
+        <Text style={styles.welcomeTitle}>Welcome to BusBook</Text>
+        <Text style={styles.welcomeSubtitle}>Login to manage your account</Text>
         <Link href="/(auth)/login" asChild>
-          <TouchableOpacity style={styles.loginButton}>
-            <Text style={styles.loginButtonText}>Login</Text>
+          <TouchableOpacity style={styles.authButton}>
+            <LinearGradient
+              colors={[Colors.primary, Colors.secondary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.authButtonGradient}
+            >
+              <Text style={styles.authButtonText}>Login</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </Link>
         <Link href="/(auth)/register" asChild>
@@ -44,18 +54,23 @@ export default function ProfileScreen() {
   }
 
   const menuItems = [
-    { icon: 'ticket', label: 'My Bookings', route: '/(tabs)/bookings' },
-    { icon: 'credit-card', label: 'Wallet', route: '/(tabs)/wallet' },
-    { icon: 'bell', label: 'Notifications', route: null },
-    { icon: 'cog', label: 'Settings', route: null },
-    { icon: 'question-circle', label: 'Help & Support', route: null },
-    { icon: 'info-circle', label: 'About', route: null },
+    { icon: 'ticket', label: 'My Bookings', route: '/(tabs)/bookings', color: Colors.primary },
+    { icon: 'credit-card', label: 'Wallet', route: '/(tabs)/wallet', color: Colors.success },
+    { icon: 'bell-o', label: 'Notifications', route: null, color: Colors.warning },
+    { icon: 'cog', label: 'Settings', route: null, color: '#6B7280' },
+    { icon: 'question-circle-o', label: 'Help & Support', route: null, color: Colors.info },
+    { icon: 'info-circle', label: 'About', route: null, color: '#6B7280' },
   ];
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Profile Header */}
-      <View style={styles.header}>
+      <LinearGradient
+        colors={[Colors.primary, '#FF6B6B']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>
             {user?.full_name?.charAt(0).toUpperCase() || 'U'}
@@ -63,8 +78,11 @@ export default function ProfileScreen() {
         </View>
         <Text style={styles.userName}>{user?.full_name}</Text>
         <Text style={styles.userEmail}>{user?.email}</Text>
-        <Text style={styles.userPhone}>{user?.phone}</Text>
-      </View>
+        <View style={styles.phoneContainer}>
+          <FontAwesome name="phone" size={12} color="rgba(255,255,255,0.8)" />
+          <Text style={styles.userPhone}>{user?.phone}</Text>
+        </View>
+      </LinearGradient>
 
       {/* Menu Items */}
       <View style={styles.menuSection}>
@@ -74,18 +92,18 @@ export default function ProfileScreen() {
             style={styles.menuItem}
             onPress={() => item.route && router.push(item.route as any)}
           >
-            <View style={styles.menuItemLeft}>
-              <FontAwesome name={item.icon as any} size={18} color="#666" />
-              <Text style={styles.menuItemText}>{item.label}</Text>
+            <View style={[styles.menuIconContainer, { backgroundColor: `${item.color}15` }]}>
+              <FontAwesome name={item.icon as any} size={18} color={item.color} />
             </View>
-            <FontAwesome name="chevron-right" size={14} color="#ccc" />
+            <Text style={styles.menuItemText}>{item.label}</Text>
+            <FontAwesome name="chevron-right" size={12} color="#D1D5DB" />
           </TouchableOpacity>
         ))}
       </View>
 
       {/* Logout */}
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <FontAwesome name="sign-out" size={18} color="#F44336" />
+        <FontAwesome name="sign-out" size={18} color={Colors.error} />
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
 
@@ -97,122 +115,163 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F8F9FD',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 24,
+    backgroundColor: '#F8F9FD',
   },
-  emptyTitle: {
-    fontSize: 22,
+  emptyIcon: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#FEE2E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  welcomeTitle: {
+    fontSize: 24,
     fontWeight: 'bold',
-    marginTop: 20,
+    color: '#1A1A2E',
     marginBottom: 8,
   },
-  emptySubtitle: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 24,
+  welcomeSubtitle: {
+    fontSize: 15,
+    color: '#6B7280',
+    marginBottom: 32,
   },
-  loginButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 48,
-    paddingVertical: 14,
-    borderRadius: 8,
-    marginBottom: 12,
+  authButton: {
+    width: '100%',
+    borderRadius: 14,
+    overflow: 'hidden',
+    marginBottom: 14,
   },
-  loginButtonText: {
+  authButtonGradient: {
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  authButtonText: {
     color: '#fff',
-    fontWeight: '600',
-    fontSize: 16,
+    fontWeight: '700',
+    fontSize: 17,
   },
   registerButton: {
-    borderWidth: 1,
-    borderColor: '#007AFF',
-    paddingHorizontal: 40,
+    width: '100%',
+    borderWidth: 2,
+    borderColor: Colors.primary,
     paddingVertical: 14,
-    borderRadius: 8,
+    borderRadius: 14,
+    alignItems: 'center',
   },
   registerButtonText: {
-    color: '#007AFF',
-    fontWeight: '600',
-    fontSize: 16,
+    color: Colors.primary,
+    fontWeight: '700',
+    fontSize: 17,
   },
   header: {
     alignItems: 'center',
-    padding: 24,
-    paddingTop: 20,
+    paddingTop: 30,
+    paddingBottom: 40,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#007AFF',
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
   },
   avatarText: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: 'bold',
-    color: '#fff',
+    color: Colors.primary,
   },
   userName: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
+    color: '#fff',
     marginBottom: 4,
   },
   userEmail: {
     fontSize: 14,
-    color: '#666',
+    color: 'rgba(255,255,255,0.9)',
+  },
+  phoneContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
   },
   userPhone: {
     fontSize: 14,
-    color: '#666',
-    marginTop: 2,
+    color: 'rgba(255,255,255,0.8)',
+    marginLeft: 6,
   },
   menuSection: {
     backgroundColor: '#fff',
     marginHorizontal: 16,
-    borderRadius: 12,
+    marginTop: -20,
+    borderRadius: 16,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
+    padding: 18,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: '#F3F4F6',
   },
-  menuItemLeft: {
-    flexDirection: 'row',
+  menuIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
     alignItems: 'center',
   },
   menuItemText: {
-    fontSize: 16,
-    marginLeft: 16,
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#1A1A2E',
+    marginLeft: 14,
   },
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     margin: 16,
-    padding: 16,
+    padding: 18,
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#FFEBEE',
   },
   logoutText: {
-    color: '#F44336',
+    color: Colors.error,
     fontSize: 16,
     fontWeight: '600',
-    marginLeft: 8,
+    marginLeft: 10,
   },
   version: {
     textAlign: 'center',
-    color: '#999',
+    color: '#9CA3AF',
     fontSize: 12,
-    marginBottom: 24,
+    marginBottom: 30,
   },
 });

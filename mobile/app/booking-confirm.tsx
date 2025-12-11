@@ -6,12 +6,15 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
+  View,
+  Text,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Text, View } from '@/components/Themed';
+import { LinearGradient } from 'expo-linear-gradient';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { busService, bookingService, walletService } from '../services';
 import { BusSchedule, Passenger, Wallet } from '../types';
+import Colors from '@/constants/Colors';
 
 export default function BookingConfirmScreen() {
   const router = useRouter();
@@ -125,33 +128,47 @@ export default function BookingConfirmScreen() {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color={Colors.primary} />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scrollContent}>
+      <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Trip Summary */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Trip Summary</Text>
           <View style={styles.summaryCard}>
-            <Text style={styles.operatorName}>{schedule?.bus.operator.name}</Text>
-            <Text style={styles.busType}>{schedule?.bus.bus_type.toUpperCase()}</Text>
+            <View style={styles.summaryHeader}>
+              <Text style={styles.operatorName}>{schedule?.bus.operator.name}</Text>
+              <View style={styles.busTypeBadge}>
+                <Text style={styles.busTypeText}>{schedule?.bus.bus_type.toUpperCase()}</Text>
+              </View>
+            </View>
             <View style={styles.routeRow}>
               <View>
                 <Text style={styles.timeText}>{schedule?.departure_time.slice(0, 5)}</Text>
                 <Text style={styles.cityText}>{schedule?.route.from_city.name}</Text>
               </View>
-              <FontAwesome name="arrow-right" size={16} color="#999" />
+              <View style={styles.routeArrowContainer}>
+                <FontAwesome name="long-arrow-right" size={18} color={Colors.primary} />
+              </View>
               <View style={{ alignItems: 'flex-end' }}>
                 <Text style={styles.timeText}>{schedule?.arrival_time.slice(0, 5)}</Text>
                 <Text style={styles.cityText}>{schedule?.route.to_city.name}</Text>
               </View>
             </View>
-            <Text style={styles.dateText}>📅 {schedule?.travel_date}</Text>
-            <Text style={styles.seatsText}>💺 Seats: {parsedSeatNumbers.join(', ')}</Text>
+            <View style={styles.summaryDetails}>
+              <View style={styles.detailItem}>
+                <FontAwesome name="calendar" size={14} color="#6B7280" />
+                <Text style={styles.detailText}>{schedule?.travel_date}</Text>
+              </View>
+              <View style={styles.detailItem}>
+                <FontAwesome name="ticket" size={14} color="#6B7280" />
+                <Text style={styles.detailText}>{parsedSeatNumbers.join(', ')}</Text>
+              </View>
+            </View>
           </View>
         </View>
 
@@ -160,21 +177,24 @@ export default function BookingConfirmScreen() {
           <Text style={styles.sectionTitle}>Passenger Details</Text>
           {passengers.map((passenger, index) => (
             <View key={index} style={styles.passengerCard}>
-              <Text style={styles.passengerTitle}>
-                Passenger {index + 1} - Seat {parsedSeatNumbers[index]}
-              </Text>
+              <View style={styles.passengerHeader}>
+                <Text style={styles.passengerTitle}>Passenger {index + 1}</Text>
+                <View style={styles.seatBadge}>
+                  <Text style={styles.seatBadgeText}>Seat {parsedSeatNumbers[index]}</Text>
+                </View>
+              </View>
               <TextInput
                 style={styles.input}
                 placeholder="Full Name"
-                placeholderTextColor="#999"
+                placeholderTextColor="#9CA3AF"
                 value={passenger.passenger_name}
                 onChangeText={(val) => updatePassenger(index, 'passenger_name', val)}
               />
               <View style={styles.row}>
                 <TextInput
-                  style={[styles.input, { flex: 1, marginRight: 8 }]}
+                  style={[styles.input, styles.ageInput]}
                   placeholder="Age"
-                  placeholderTextColor="#999"
+                  placeholderTextColor="#9CA3AF"
                   keyboardType="numeric"
                   value={passenger.passenger_age > 0 ? String(passenger.passenger_age) : ''}
                   onChangeText={(val) => updatePassenger(index, 'passenger_age', parseInt(val) || 0)}
@@ -195,7 +215,7 @@ export default function BookingConfirmScreen() {
                           passenger.passenger_gender === gender && styles.genderButtonTextActive,
                         ]}
                       >
-                        {gender.charAt(0).toUpperCase()}
+                        {gender === 'male' ? 'M' : gender === 'female' ? 'F' : 'O'}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -212,31 +232,41 @@ export default function BookingConfirmScreen() {
             style={[styles.paymentOption, paymentMethod === 'wallet' && styles.paymentOptionActive]}
             onPress={() => setPaymentMethod('wallet')}
           >
-            <FontAwesome name="credit-card" size={20} color={paymentMethod === 'wallet' ? '#007AFF' : '#666'} />
+            <View style={[styles.paymentIcon, { backgroundColor: '#E8F5E9' }]}>
+              <FontAwesome name="credit-card" size={18} color={Colors.success} />
+            </View>
             <View style={styles.paymentInfo}>
               <Text style={styles.paymentTitle}>Wallet</Text>
               <Text style={styles.paymentBalance}>Balance: ₹{wallet?.balance.toFixed(2) || '0.00'}</Text>
             </View>
-            <View style={[styles.radio, paymentMethod === 'wallet' && styles.radioActive]} />
+            <View style={[styles.radio, paymentMethod === 'wallet' && styles.radioActive]}>
+              {paymentMethod === 'wallet' && <View style={styles.radioInner} />}
+            </View>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.paymentOption, paymentMethod === 'card' && styles.paymentOptionActive]}
             onPress={() => setPaymentMethod('card')}
           >
-            <FontAwesome name="credit-card-alt" size={18} color={paymentMethod === 'card' ? '#007AFF' : '#666'} />
+            <View style={[styles.paymentIcon, { backgroundColor: '#E3F2FD' }]}>
+              <FontAwesome name="credit-card-alt" size={16} color={Colors.info} />
+            </View>
             <View style={styles.paymentInfo}>
               <Text style={styles.paymentTitle}>Card / UPI</Text>
               <Text style={styles.paymentBalance}>Pay via gateway</Text>
             </View>
-            <View style={[styles.radio, paymentMethod === 'card' && styles.radioActive]} />
+            <View style={[styles.radio, paymentMethod === 'card' && styles.radioActive]}>
+              {paymentMethod === 'card' && <View style={styles.radioInner} />}
+            </View>
           </TouchableOpacity>
         </View>
+
+        <View style={{ height: 120 }} />
       </ScrollView>
 
       {/* Bottom Bar */}
       <View style={styles.bottomBar}>
-        <View>
+        <View style={styles.totalSection}>
           <Text style={styles.totalLabel}>Total Amount</Text>
           <Text style={styles.totalAmount}>₹{amount.toFixed(0)}</Text>
         </View>
@@ -245,11 +275,21 @@ export default function BookingConfirmScreen() {
           onPress={handleBooking}
           disabled={booking}
         >
-          {booking ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.bookButtonText}>Book Now</Text>
-          )}
+          <LinearGradient
+            colors={[Colors.success, '#00C853']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.bookButtonGradient}
+          >
+            {booking ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <>
+                <FontAwesome name="check" size={16} color="#fff" />
+                <Text style={styles.bookButtonText}>Book Now</Text>
+              </>
+            )}
+          </LinearGradient>
         </TouchableOpacity>
       </View>
     </View>
@@ -259,11 +299,13 @@ export default function BookingConfirmScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F8F9FD',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#F8F9FD',
   },
   scrollContent: {
     flex: 1,
@@ -273,91 +315,153 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 12,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1A2E',
+    marginBottom: 14,
   },
   summaryCard: {
     backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
+    padding: 18,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  summaryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   operatorName: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: 'bold',
+    color: '#1A1A2E',
   },
-  busType: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 12,
+  busTypeBadge: {
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  busTypeText: {
+    fontSize: 11,
+    color: '#4F46E5',
+    fontWeight: '600',
   },
   routeRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
   timeText: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1A1A2E',
   },
   cityText: {
-    fontSize: 12,
-    color: '#666',
-  },
-  dateText: {
     fontSize: 13,
-    marginBottom: 4,
+    color: '#6B7280',
+    marginTop: 2,
   },
-  seatsText: {
-    fontSize: 13,
+  routeArrowContainer: {
+    paddingHorizontal: 16,
+  },
+  summaryDetails: {
+    flexDirection: 'row',
+  },
+  detailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 24,
+  },
+  detailText: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginLeft: 8,
   },
   passengerCard: {
     backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
+    padding: 18,
+    borderRadius: 16,
+    marginBottom: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  passengerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
   },
   passengerTitle: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
-    marginBottom: 12,
-    color: '#007AFF',
+    color: '#1A1A2E',
+  },
+  seatBadge: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  seatBadgeText: {
+    fontSize: 11,
+    color: Colors.primary,
+    fontWeight: '600',
   },
   input: {
-    height: 48,
+    height: 52,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 16,
     marginBottom: 12,
     fontSize: 15,
+    backgroundColor: '#FAFAFA',
+    color: '#1A1A2E',
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
   },
+  ageInput: {
+    flex: 1,
+    marginRight: 12,
+    marginBottom: 0,
+  },
   genderButtons: {
     flexDirection: 'row',
   },
   genderButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#ddd',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 8,
+    backgroundColor: '#fff',
   },
   genderButtonActive: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
   },
   genderButtonText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
+    fontWeight: '700',
+    color: '#6B7280',
   },
   genderButtonTextActive: {
     color: '#fff',
@@ -366,14 +470,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 10,
+    padding: 18,
+    borderRadius: 14,
+    marginBottom: 12,
     borderWidth: 2,
     borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   paymentOptionActive: {
-    borderColor: '#007AFF',
+    borderColor: Colors.primary,
+  },
+  paymentIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   paymentInfo: {
     flex: 1,
@@ -382,52 +498,76 @@ const styles = StyleSheet.create({
   paymentTitle: {
     fontSize: 15,
     fontWeight: '600',
+    color: '#1A1A2E',
   },
   paymentBalance: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: 13,
+    color: '#6B7280',
+    marginTop: 2,
   },
   radio: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     borderWidth: 2,
-    borderColor: '#ddd',
+    borderColor: '#D1D5DB',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   radioActive: {
-    borderColor: '#007AFF',
-    backgroundColor: '#007AFF',
+    borderColor: Colors.primary,
+  },
+  radioInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: Colors.primary,
   },
   bottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
     backgroundColor: '#fff',
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: '#F3F4F6',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 10,
   },
+  totalSection: {},
   totalLabel: {
     fontSize: 12,
-    color: '#666',
+    color: '#6B7280',
   },
   totalAmount: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
-    color: '#007AFF',
+    color: Colors.primary,
   },
   bookButton: {
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: 40,
-    paddingVertical: 16,
-    borderRadius: 8,
+    borderRadius: 14,
+    overflow: 'hidden',
   },
   bookButtonDisabled: {
-    backgroundColor: '#ccc',
+    opacity: 0.7,
+  },
+  bookButtonGradient: {
+    flexDirection: 'row',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    alignItems: 'center',
   },
   bookButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: 'bold',
+    marginLeft: 10,
   },
 });

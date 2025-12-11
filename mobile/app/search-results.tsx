@@ -4,12 +4,15 @@ import {
   TouchableOpacity,
   FlatList,
   ActivityIndicator,
+  View,
+  Text,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Text, View } from '@/components/Themed';
+import { LinearGradient } from 'expo-linear-gradient';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { busService } from '../services';
 import { BusSchedule } from '../types';
+import Colors from '@/constants/Colors';
 
 export default function SearchResultsScreen() {
   const router = useRouter();
@@ -52,17 +55,18 @@ export default function SearchResultsScreen() {
           params: { scheduleId: item.id.toString() },
         })
       }
+      activeOpacity={0.7}
     >
       {/* Operator Header */}
       <View style={styles.busHeader}>
-        <View>
+        <View style={styles.operatorInfo}>
           <Text style={styles.operatorName}>{item.bus.operator.name}</Text>
           <Text style={styles.busType}>
             {item.bus.bus_type.toUpperCase()} • {item.bus.seat_layout}
           </Text>
         </View>
         <View style={styles.ratingBadge}>
-          <FontAwesome name="star" size={12} color="#FFC107" />
+          <FontAwesome name="star" size={11} color="#F59E0B" />
           <Text style={styles.ratingText}>{item.bus.operator.rating.toFixed(1)}</Text>
         </View>
       </View>
@@ -101,7 +105,8 @@ export default function SearchResultsScreen() {
 
       {/* Footer */}
       <View style={styles.busFooter}>
-        <View>
+        <View style={styles.seatsInfo}>
+          <FontAwesome name="user" size={12} color={Colors.success} />
           <Text style={styles.seatsText}>{item.available_seats} seats left</Text>
         </View>
         <View style={styles.priceSection}>
@@ -115,7 +120,7 @@ export default function SearchResultsScreen() {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color={Colors.primary} />
         <Text style={styles.loadingText}>Searching buses...</Text>
       </View>
     );
@@ -124,7 +129,9 @@ export default function SearchResultsScreen() {
   if (error) {
     return (
       <View style={styles.centerContainer}>
-        <FontAwesome name="bus" size={48} color="#ccc" />
+        <View style={styles.errorIcon}>
+          <FontAwesome name="bus" size={40} color="#D1D5DB" />
+        </View>
         <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity style={styles.retryButton} onPress={() => router.back()}>
           <Text style={styles.retryButtonText}>Go Back</Text>
@@ -136,21 +143,29 @@ export default function SearchResultsScreen() {
   return (
     <View style={styles.container}>
       {/* Route Header */}
-      <View style={styles.routeHeader}>
-        <Text style={styles.routeTitle}>
-          {from} → {to}
-        </Text>
-        <Text style={styles.dateText}>{date} • {buses.length} buses</Text>
-      </View>
+      <LinearGradient
+        colors={[Colors.primary, '#FF6B6B']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.routeHeader}
+      >
+        <View style={styles.headerContent}>
+          <Text style={styles.routeTitle}>
+            {from} → {to}
+          </Text>
+          <Text style={styles.dateText}>{date} • {buses.length} buses found</Text>
+        </View>
+      </LinearGradient>
 
       <FlatList
         data={buses}
         renderItem={renderBus}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.centerContainer}>
-            <Text>No buses found</Text>
+            <Text style={styles.emptyText}>No buses found</Text>
           </View>
         }
       />
@@ -161,178 +176,211 @@ export default function SearchResultsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F8F9FD',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    backgroundColor: '#F8F9FD',
   },
   loadingText: {
-    marginTop: 12,
-    color: '#666',
+    marginTop: 16,
+    color: '#6B7280',
+    fontSize: 15,
+  },
+  errorIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   errorText: {
-    marginTop: 16,
     fontSize: 16,
-    color: '#666',
+    color: '#6B7280',
     textAlign: 'center',
+    marginBottom: 20,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#6B7280',
   },
   retryButton: {
-    marginTop: 16,
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 12,
   },
   retryButtonText: {
     color: '#fff',
     fontWeight: '600',
+    fontSize: 15,
   },
   routeHeader: {
-    padding: 16,
-    backgroundColor: '#007AFF',
+    paddingTop: 16,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+  },
+  headerContent: {
+    alignItems: 'center',
   },
   routeTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#fff',
   },
   dateText: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
+    color: 'rgba(255,255,255,0.85)',
     marginTop: 4,
   },
   listContent: {
-    padding: 12,
+    padding: 16,
   },
   busCard: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 14,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
   },
   busHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 16,
+    marginBottom: 18,
+  },
+  operatorInfo: {
+    flex: 1,
   },
   operatorName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
+    color: '#1A1A2E',
   },
   busType: {
     fontSize: 12,
-    color: '#666',
-    marginTop: 2,
+    color: '#6B7280',
+    marginTop: 3,
   },
   ratingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF8E1',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
   },
   ratingText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     marginLeft: 4,
-    color: '#F57C00',
+    color: '#D97706',
   },
   routeSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   timeBlock: {
     flex: 1,
   },
   timeText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
+    color: '#1A1A2E',
   },
   cityText: {
     fontSize: 12,
-    color: '#666',
-    marginTop: 2,
+    color: '#6B7280',
+    marginTop: 3,
   },
   durationBlock: {
     flex: 1,
     alignItems: 'center',
   },
   durationText: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: 11,
+    color: '#6B7280',
+    fontWeight: '500',
   },
   routeLine: {
     flexDirection: 'row',
     alignItems: 'center',
     marginVertical: 6,
+    width: '100%',
   },
   dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#007AFF',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.primary,
   },
   line: {
     flex: 1,
-    height: 1,
-    backgroundColor: '#ddd',
+    height: 2,
+    backgroundColor: '#E5E7EB',
     marginHorizontal: 4,
   },
   distanceText: {
-    fontSize: 11,
-    color: '#999',
+    fontSize: 10,
+    color: '#9CA3AF',
   },
   amenitiesRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 12,
+    marginBottom: 14,
   },
   amenityChip: {
-    backgroundColor: '#f0f7ff',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    marginRight: 6,
-    marginBottom: 4,
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    marginRight: 8,
+    marginBottom: 6,
   },
   amenityText: {
-    fontSize: 10,
-    color: '#007AFF',
+    fontSize: 11,
+    color: '#4F46E5',
+    fontWeight: '500',
     textTransform: 'capitalize',
   },
   busFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 12,
+    paddingTop: 14,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: '#F3F4F6',
+  },
+  seatsInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   seatsText: {
     fontSize: 13,
-    color: '#4CAF50',
-    fontWeight: '500',
+    color: Colors.success,
+    fontWeight: '600',
+    marginLeft: 6,
   },
   priceSection: {
     alignItems: 'flex-end',
   },
   priceLabel: {
     fontSize: 11,
-    color: '#999',
+    color: '#9CA3AF',
   },
   priceText: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
-    color: '#007AFF',
+    color: Colors.primary,
   },
 });

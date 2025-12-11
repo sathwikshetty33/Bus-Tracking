@@ -6,13 +6,15 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
-  Platform,
+  View,
+  Text,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Text, View } from '@/components/Themed';
+import { LinearGradient } from 'expo-linear-gradient';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { busService } from '../../services';
 import { City } from '../../types';
+import Colors from '@/constants/Colors';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -75,22 +77,31 @@ export default function HomeScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Where would you like to go?</Text>
-        <Text style={styles.headerSubtitle}>Book bus tickets in seconds</Text>
-      </View>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Hero Section with Gradient */}
+      <LinearGradient
+        colors={[Colors.primary, '#FF6B6B']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.heroSection}
+      >
+        <Text style={styles.heroTitle}>Where would you like to go?</Text>
+        <Text style={styles.heroSubtitle}>Book bus tickets in seconds</Text>
+      </LinearGradient>
 
+      {/* Search Card */}
       <View style={styles.searchCard}>
         {/* From City */}
         <View style={styles.inputRow}>
-          <FontAwesome name="circle-o" size={16} color="#4CAF50" style={styles.inputIcon} />
+          <View style={styles.inputIconContainer}>
+            <FontAwesome name="circle-o" size={14} color={Colors.success} />
+          </View>
           <View style={styles.inputWrapper}>
-            <Text style={styles.inputLabel}>From</Text>
+            <Text style={styles.inputLabel}>FROM</Text>
             <TextInput
               style={styles.input}
               placeholder="Enter departure city"
-              placeholderTextColor="#999"
+              placeholderTextColor="#9CA3AF"
               value={fromCity}
               onChangeText={setFromCity}
             />
@@ -99,20 +110,22 @@ export default function HomeScreen() {
 
         {/* Swap Button */}
         <TouchableOpacity style={styles.swapButton} onPress={swapCities}>
-          <FontAwesome name="exchange" size={16} color="#007AFF" />
+          <FontAwesome name="exchange" size={14} color={Colors.primary} />
         </TouchableOpacity>
 
         <View style={styles.divider} />
 
         {/* To City */}
         <View style={styles.inputRow}>
-          <FontAwesome name="map-marker" size={18} color="#F44336" style={styles.inputIcon} />
+          <View style={styles.inputIconContainer}>
+            <FontAwesome name="map-marker" size={16} color={Colors.primary} />
+          </View>
           <View style={styles.inputWrapper}>
-            <Text style={styles.inputLabel}>To</Text>
+            <Text style={styles.inputLabel}>TO</Text>
             <TextInput
               style={styles.input}
               placeholder="Enter destination city"
-              placeholderTextColor="#999"
+              placeholderTextColor="#9CA3AF"
               value={toCity}
               onChangeText={setToCity}
             />
@@ -123,13 +136,15 @@ export default function HomeScreen() {
 
         {/* Date */}
         <View style={styles.inputRow}>
-          <FontAwesome name="calendar" size={16} color="#2196F3" style={styles.inputIcon} />
+          <View style={styles.inputIconContainer}>
+            <FontAwesome name="calendar" size={14} color={Colors.secondary} />
+          </View>
           <View style={styles.inputWrapper}>
-            <Text style={styles.inputLabel}>Travel Date</Text>
+            <Text style={styles.inputLabel}>TRAVEL DATE</Text>
             <TextInput
               style={styles.input}
               placeholder="YYYY-MM-DD"
-              placeholderTextColor="#999"
+              placeholderTextColor="#9CA3AF"
               value={travelDate}
               onChangeText={setTravelDate}
             />
@@ -142,19 +157,26 @@ export default function HomeScreen() {
           onPress={handleSearch}
           disabled={loading}
         >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <FontAwesome name="search" size={18} color="#fff" />
-              <Text style={styles.searchButtonText}>Search Buses</Text>
-            </>
-          )}
+          <LinearGradient
+            colors={[Colors.primary, Colors.secondary]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.searchButtonGradient}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <>
+                <FontAwesome name="search" size={16} color="#fff" />
+                <Text style={styles.searchButtonText}>Search Buses</Text>
+              </>
+            )}
+          </LinearGradient>
         </TouchableOpacity>
       </View>
 
       {/* Popular Cities */}
-      <View style={styles.popularSection}>
+      <View style={styles.section}>
         <Text style={styles.sectionTitle}>Popular Cities</Text>
         <View style={styles.citiesGrid}>
           {popularCities.slice(0, 8).map((city) => (
@@ -170,13 +192,13 @@ export default function HomeScreen() {
       </View>
 
       {/* Quick Routes */}
-      <View style={styles.routesSection}>
+      <View style={styles.section}>
         <Text style={styles.sectionTitle}>Popular Routes</Text>
         {[
-          { from: 'Bengaluru', to: 'Chennai' },
-          { from: 'Mumbai', to: 'Pune' },
-          { from: 'Hyderabad', to: 'Bengaluru' },
-          { from: 'Bengaluru', to: 'Goa' },
+          { from: 'Bengaluru', to: 'Chennai', price: '₹499' },
+          { from: 'Mumbai', to: 'Pune', price: '₹349' },
+          { from: 'Hyderabad', to: 'Bengaluru', price: '₹699' },
+          { from: 'Bengaluru', to: 'Goa', price: '₹899' },
         ].map((route, index) => (
           <TouchableOpacity
             key={index}
@@ -187,14 +209,21 @@ export default function HomeScreen() {
             }}
           >
             <View style={styles.routeInfo}>
-              <Text style={styles.routeText}>{route.from}</Text>
-              <FontAwesome name="arrow-right" size={12} color="#999" style={styles.routeArrow} />
-              <Text style={styles.routeText}>{route.to}</Text>
+              <View style={styles.routeCities}>
+                <Text style={styles.routeCity}>{route.from}</Text>
+                <FontAwesome name="long-arrow-right" size={14} color={Colors.primary} style={styles.routeArrow} />
+                <Text style={styles.routeCity}>{route.to}</Text>
+              </View>
+              <Text style={styles.routePrice}>from {route.price}</Text>
             </View>
-            <FontAwesome name="chevron-right" size={14} color="#ccc" />
+            <View style={styles.routeIconContainer}>
+              <FontAwesome name="chevron-right" size={12} color="#9CA3AF" />
+            </View>
           </TouchableOpacity>
         ))}
       </View>
+
+      <View style={{ height: 30 }} />
     </ScrollView>
   );
 }
@@ -202,123 +231,139 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F8F9FD',
   },
-  header: {
-    padding: 20,
-    paddingTop: 10,
+  heroSection: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 60,
   },
-  headerTitle: {
-    fontSize: 24,
+  heroTitle: {
+    fontSize: 26,
     fontWeight: 'bold',
-    marginBottom: 4,
+    color: '#fff',
+    marginBottom: 6,
   },
-  headerSubtitle: {
-    fontSize: 14,
-    opacity: 0.7,
+  heroSubtitle: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.85)',
   },
   searchCard: {
-    margin: 16,
-    padding: 16,
-    borderRadius: 16,
+    marginHorizontal: 16,
+    marginTop: -40,
+    padding: 20,
+    borderRadius: 20,
     backgroundColor: '#fff',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 14,
   },
-  inputIcon: {
-    width: 24,
+  inputIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   inputWrapper: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 14,
   },
   inputLabel: {
-    fontSize: 12,
-    color: '#999',
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#9CA3AF',
+    letterSpacing: 0.5,
     marginBottom: 4,
   },
   input: {
     fontSize: 16,
-    color: '#333',
+    color: '#1A1A2E',
+    fontWeight: '500',
     padding: 0,
   },
   swapButton: {
     position: 'absolute',
-    right: 16,
-    top: 48,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#f0f7ff',
+    right: 20,
+    top: 50,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#FEE2E2',
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 10,
   },
   divider: {
     height: 1,
-    backgroundColor: '#eee',
-    marginLeft: 36,
+    backgroundColor: '#F3F4F6',
+    marginLeft: 46,
   },
   searchButton: {
-    flexDirection: 'row',
-    backgroundColor: '#007AFF',
-    borderRadius: 12,
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 16,
+    marginTop: 20,
+    borderRadius: 14,
+    overflow: 'hidden',
   },
   searchButtonDisabled: {
     opacity: 0.7,
   },
+  searchButtonGradient: {
+    flexDirection: 'row',
+    height: 54,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   searchButtonText: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
+    fontSize: 17,
+    fontWeight: '700',
+    marginLeft: 10,
   },
-  popularSection: {
-    padding: 16,
+  section: {
+    padding: 20,
+    paddingBottom: 0,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 12,
+    fontWeight: '700',
+    color: '#1A1A2E',
+    marginBottom: 14,
   },
   citiesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
   cityChip: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#fff',
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 8,
-    marginBottom: 8,
+    paddingVertical: 10,
+    borderRadius: 25,
+    marginRight: 10,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   cityChipText: {
     fontSize: 14,
-    color: '#333',
-  },
-  routesSection: {
-    padding: 16,
-    paddingTop: 0,
+    color: '#374151',
+    fontWeight: '500',
   },
   routeCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
+    padding: 18,
+    borderRadius: 14,
+    marginBottom: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -326,14 +371,32 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   routeInfo: {
+    flex: 1,
+  },
+  routeCities: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 4,
   },
-  routeText: {
+  routeCity: {
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: '600',
+    color: '#1A1A2E',
   },
   routeArrow: {
-    marginHorizontal: 12,
+    marginHorizontal: 10,
+  },
+  routePrice: {
+    fontSize: 13,
+    color: Colors.success,
+    fontWeight: '600',
+  },
+  routeIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

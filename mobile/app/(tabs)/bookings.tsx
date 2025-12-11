@@ -6,13 +6,16 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
+  View,
+  Text,
 } from 'react-native';
 import { Link, useRouter } from 'expo-router';
-import { Text, View } from '@/components/Themed';
+import { LinearGradient } from 'expo-linear-gradient';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { bookingService } from '../../services';
 import { Booking } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import Colors from '@/constants/Colors';
 
 export default function BookingsScreen() {
   const router = useRouter();
@@ -72,11 +75,21 @@ export default function BookingsScreen() {
   if (!isAuthenticated) {
     return (
       <View style={styles.centerContainer}>
-        <FontAwesome name="ticket" size={48} color="#ccc" />
-        <Text style={styles.emptyTitle}>Login to view your bookings</Text>
+        <View style={styles.emptyIcon}>
+          <FontAwesome name="ticket" size={40} color={Colors.primary} />
+        </View>
+        <Text style={styles.emptyTitle}>Login to view your trips</Text>
+        <Text style={styles.emptySubtitle}>Book and manage your journeys</Text>
         <Link href="/(auth)/login" asChild>
           <TouchableOpacity style={styles.loginButton}>
-            <Text style={styles.loginButtonText}>Login</Text>
+            <LinearGradient
+              colors={[Colors.primary, Colors.secondary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.loginButtonGradient}
+            >
+              <Text style={styles.loginButtonText}>Login</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </Link>
       </View>
@@ -86,85 +99,107 @@ export default function BookingsScreen() {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color={Colors.primary} />
       </View>
     );
   }
 
-  const getStatusColor = (status: string) => {
+  const getStatusStyle = (status: string) => {
     switch (status) {
       case 'confirmed':
-        return '#4CAF50';
+        return { bg: '#E8F5E9', color: Colors.success };
       case 'cancelled':
-        return '#F44336';
+        return { bg: '#FFEBEE', color: Colors.error };
       case 'completed':
-        return '#2196F3';
+        return { bg: '#E3F2FD', color: Colors.info };
       default:
-        return '#999';
+        return { bg: '#F3F4F6', color: '#6B7280' };
     }
   };
 
-  const renderBooking = ({ item }: { item: Booking }) => (
-    <View style={styles.bookingCard}>
-      <View style={styles.bookingHeader}>
-        <Text style={styles.bookingCode}>{item.booking_code}</Text>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>  
-          <Text style={styles.statusText}>{item.status.toUpperCase()}</Text>
+  const renderBooking = ({ item }: { item: Booking }) => {
+    const statusStyle = getStatusStyle(item.status);
+    
+    return (
+      <View style={styles.bookingCard}>
+        <View style={styles.bookingHeader}>
+          <View>
+            <Text style={styles.bookingCode}>{item.booking_code}</Text>
+            <Text style={styles.operatorName}>{item.operator_name}</Text>
+          </View>
+          <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
+            <Text style={[styles.statusText, { color: statusStyle.color }]}>
+              {item.status.toUpperCase()}
+            </Text>
+          </View>
         </View>
-      </View>
 
-      <View style={styles.routeRow}>
-        <View style={styles.cityInfo}>
-          <Text style={styles.cityName}>{item.from_city || 'N/A'}</Text>
-          <Text style={styles.timeText}>{item.departure_time?.slice(0, 5)}</Text>
+        <View style={styles.routeSection}>
+          <View style={styles.cityBlock}>
+            <Text style={styles.timeText}>{item.departure_time?.slice(0, 5)}</Text>
+            <Text style={styles.cityName}>{item.from_city || 'N/A'}</Text>
+          </View>
+          <View style={styles.routeLine}>
+            <View style={styles.dot} />
+            <View style={styles.line} />
+            <FontAwesome name="bus" size={14} color={Colors.primary} />
+            <View style={styles.line} />
+            <View style={styles.dot} />
+          </View>
+          <View style={[styles.cityBlock, { alignItems: 'flex-end' }]}>
+            <Text style={styles.timeText}>{item.arrival_time?.slice(0, 5)}</Text>
+            <Text style={styles.cityName}>{item.to_city || 'N/A'}</Text>
+          </View>
         </View>
-        <View style={styles.routeLine}>
-          <View style={styles.dashedLine} />
-          <FontAwesome name="bus" size={16} color="#007AFF" />
-          <View style={styles.dashedLine} />
-        </View>
-        <View style={[styles.cityInfo, { alignItems: 'flex-end' }]}>
-          <Text style={styles.cityName}>{item.to_city || 'N/A'}</Text>
-          <Text style={styles.timeText}>{item.arrival_time?.slice(0, 5)}</Text>
-        </View>
-      </View>
 
-      <View style={styles.detailsRow}>
-        <View style={styles.detailItem}>
-          <FontAwesome name="calendar" size={12} color="#666" />
-          <Text style={styles.detailText}>{item.travel_date}</Text>
+        <View style={styles.detailsRow}>
+          <View style={styles.detailItem}>
+            <FontAwesome name="calendar" size={12} color="#6B7280" />
+            <Text style={styles.detailText}>{item.travel_date}</Text>
+          </View>
+          <View style={styles.detailItem}>
+            <FontAwesome name="users" size={12} color="#6B7280" />
+            <Text style={styles.detailText}>{item.passengers.length} Passenger(s)</Text>
+          </View>
         </View>
-        <View style={styles.detailItem}>
-          <FontAwesome name="users" size={12} color="#666" />
-          <Text style={styles.detailText}>{item.passengers.length} Passenger(s)</Text>
-        </View>
-        <View style={styles.detailItem}>
-          <FontAwesome name="bus" size={12} color="#666" />
-          <Text style={styles.detailText}>{item.operator_name}</Text>
-        </View>
-      </View>
 
-      <View style={styles.bookingFooter}>
-        <Text style={styles.amountText}>₹{item.total_amount.toFixed(0)}</Text>
-        {item.status === 'confirmed' && (
-          <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={() => handleCancelBooking(item.id)}
-          >
-            <Text style={styles.cancelButtonText}>Cancel</Text>
-          </TouchableOpacity>
-        )}
+        <View style={styles.bookingFooter}>
+          <Text style={styles.amountText}>₹{item.total_amount.toFixed(0)}</Text>
+          {item.status === 'confirmed' && (
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => handleCancelBooking(item.id)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel Booking</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <View style={styles.container}>
       {bookings.length === 0 ? (
         <View style={styles.centerContainer}>
-          <FontAwesome name="ticket" size={48} color="#ccc" />
-          <Text style={styles.emptyTitle}>No bookings yet</Text>
+          <View style={styles.emptyIcon}>
+            <FontAwesome name="suitcase" size={40} color="#D1D5DB" />
+          </View>
+          <Text style={styles.emptyTitle}>No trips yet</Text>
           <Text style={styles.emptySubtitle}>Book your first bus ticket now!</Text>
+          <TouchableOpacity 
+            style={styles.bookNowButton}
+            onPress={() => router.push('/(tabs)')}
+          >
+            <LinearGradient
+              colors={[Colors.primary, Colors.secondary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.loginButtonGradient}
+            >
+              <Text style={styles.loginButtonText}>Book Now</Text>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
       ) : (
         <FlatList
@@ -172,7 +207,10 @@ export default function BookingsScreen() {
           renderItem={renderBooking}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.listContent}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />
+          }
+          showsVerticalScrollIndicator={false}
         />
       )}
     </View>
@@ -182,33 +220,50 @@ export default function BookingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F8F9FD',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    backgroundColor: '#F8F9FD',
+  },
+  emptyIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FEE2E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginTop: 16,
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1A1A2E',
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#666',
+    color: '#6B7280',
+    marginBottom: 24,
   },
   loginButton: {
-    marginTop: 20,
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  bookNowButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  loginButtonGradient: {
+    paddingHorizontal: 48,
+    paddingVertical: 14,
   },
   loginButtonText: {
     color: '#fff',
-    fontWeight: '600',
+    fontWeight: '700',
     fontSize: 16,
   },
   listContent: {
@@ -216,109 +271,117 @@ const styles = StyleSheet.create({
   },
   bookingCard: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 14,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
   },
   bookingHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+    alignItems: 'flex-start',
+    marginBottom: 16,
   },
   bookingCode: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
-    color: '#333',
+    color: '#6B7280',
+    marginBottom: 2,
+  },
+  operatorName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1A1A2E',
   },
   statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
   },
   statusText: {
-    color: '#fff',
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
-  routeRow: {
+  routeSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 16,
   },
-  cityInfo: {
+  cityBlock: {
     flex: 1,
   },
-  cityName: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
   timeText: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1A1A2E',
+  },
+  cityName: {
+    fontSize: 13,
+    color: '#6B7280',
     marginTop: 2,
   },
   routeLine: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     paddingHorizontal: 8,
   },
-  dashedLine: {
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.primary,
+  },
+  line: {
     flex: 1,
     height: 1,
-    borderStyle: 'dashed',
-    borderWidth: 1,
-    borderColor: '#ddd',
+    backgroundColor: '#E5E7EB',
+    marginHorizontal: 4,
   },
   detailsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 12,
-    paddingTop: 12,
+    paddingTop: 14,
+    paddingBottom: 14,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: '#F3F4F6',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
   detailItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 16,
-    marginBottom: 4,
+    marginRight: 20,
   },
   detailText: {
-    fontSize: 12,
-    color: '#666',
-    marginLeft: 6,
+    fontSize: 13,
+    color: '#6B7280',
+    marginLeft: 8,
   },
   bookingFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
+    paddingTop: 14,
   },
   amountText: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: 'bold',
-    color: '#007AFF',
+    color: Colors.primary,
   },
   cancelButton: {
-    backgroundColor: '#ffebee',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 6,
+    backgroundColor: '#FFEBEE',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 8,
   },
   cancelButtonText: {
-    color: '#F44336',
+    color: Colors.error,
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: 13,
   },
 });

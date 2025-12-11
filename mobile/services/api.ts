@@ -1,10 +1,8 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Base URL - Update this for your environment
-// const BASE_URL = 'http://10.0.2.2:8000'; // Android emulator
-// const BASE_URL = 'http://localhost:8000'; // iOS simulator  
-const BASE_URL = 'http://172.29.54.122:8000'; // Your computer's IP - physical device via tunnel
+// Base URL - Deployed backend
+const BASE_URL = 'https://bus-4o8c-p91410m3h-sathwikshetty33s-projects.vercel.app';
 
 const TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
