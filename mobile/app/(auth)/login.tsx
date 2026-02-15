@@ -33,8 +33,12 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      await login(email, password);
-      router.replace('/(tabs)');
+      const user = await login(email, password);
+      if (user.role === 'admin' || user.role === 'admin123') {
+        router.replace('/(admin)/dashboard');
+      } else {
+        router.replace('/(tabs)');
+      }
     } catch (error: any) {
       Alert.alert(
         'Login Failed',

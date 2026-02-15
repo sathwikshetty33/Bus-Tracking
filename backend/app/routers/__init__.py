@@ -4,6 +4,7 @@ from .buses import router as buses_router
 from .bookings import router as bookings_router
 from .wallet import router as wallet_router
 from .agent import router as agent_router
+from .admin import router as admin_router
 
 __all__ = [
     "auth_router",
@@ -11,4 +12,5 @@ __all__ = [
     "bookings_router",
     "wallet_router",
     "agent_router",
+    "admin_router",
 ]

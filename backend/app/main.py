@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from .database import init_db
-from .routers import auth_router, buses_router, bookings_router, wallet_router, agent_router
+from .routers import auth_router, buses_router, bookings_router, wallet_router, agent_router, admin_router
 
 
 @asynccontextmanager
@@ -38,6 +38,7 @@ app.include_router(buses_router)
 app.include_router(bookings_router)
 app.include_router(wallet_router)
 app.include_router(agent_router)
+app.include_router(admin_router)
 
 
 @app.get("/", tags=["Health"])

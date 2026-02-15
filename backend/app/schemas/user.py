@@ -23,6 +23,7 @@ class UserResponse(BaseModel):
     email: str
     phone: str
     full_name: str
+    role: str
     is_active: bool
     created_at: datetime
 

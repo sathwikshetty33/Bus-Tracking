@@ -402,6 +402,34 @@ def create_boarding_dropping_bulk(db: Session):
     print(f"✅ Created {point_count} boarding/dropping points")
 
 
+def create_admin_user(db: Session):
+    """Create default admin user."""
+    from .models.user import User
+    from .utils.security import get_password_hash
+    
+    admin_email = "admin"
+    admin_password = "admin123"
+    
+    # Check if admin already exists
+    existing_admin = db.query(User).filter(User.email == admin_email).first()
+    if existing_admin:
+        print("ℹ️ Admin user already exists")
+        return existing_admin
+        
+    admin = User(
+        email=admin_email,
+        phone="0000000000",
+        password_hash=get_password_hash(admin_password),
+        full_name="Administrator",
+        role="admin",
+        is_active=True
+    )
+    db.add(admin)
+    db.commit()
+    print("✅ Created admin user (admin/admin123)")
+    return admin
+
+
 def seed_database():
     """Main function to seed the database."""
     print("\n" + "=" * 60)
@@ -456,6 +484,9 @@ def seed_database():
         cities = create_cities(db)
         routes = create_routes(db, cities)
         buses = create_buses(db, operators)
+        
+        print("\n👤 Creating admin user...")
+        create_admin_user(db)
         
         print("\n📅 Creating schedules (this may take a few minutes)...")
         create_schedules_bulk(db, buses, routes)
