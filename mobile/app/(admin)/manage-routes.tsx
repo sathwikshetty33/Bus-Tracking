@@ -115,6 +115,43 @@ export default function ManageRoutes() {
         setModalVisible(true);
     };
 
+    const [cityModalVisible, setCityModalVisible] = useState(false);
+    const [cityFormData, setCityFormData] = useState({
+        name: '',
+        state: '',
+        code: '',
+        is_popular: false,
+    });
+
+    const fetchCities = async () => {
+        try {
+            const citiesData = await busService.getCities();
+            setCities(citiesData);
+        } catch (error) {
+            console.error('Failed to fetch cities:', error);
+        }
+    };
+
+    const handleCitySubmit = async () => {
+        if (!cityFormData.name || !cityFormData.state || !cityFormData.code) {
+            Alert.alert('Error', 'Please fill name, state and code');
+            return;
+        }
+
+        setSubmitting(true);
+        try {
+            await adminService.createCity(cityFormData);
+            Alert.alert('Success', 'City added');
+            setCityModalVisible(false);
+            setCityFormData({ name: '', state: '', code: '', is_popular: false });
+            fetchCities(); // Refresh cities list
+        } catch (error: any) {
+            Alert.alert('Error', error.response?.data?.detail || 'Operation failed');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     const renderItem = ({ item }: { item: Route }) => (
         <View style={styles.card}>
             <View style={styles.cardHeader}>
@@ -146,6 +183,10 @@ export default function ManageRoutes() {
                     contentContainerStyle={styles.list}
                 />
             )}
+
+            <TouchableOpacity style={styles.addCityFab} onPress={() => setCityModalVisible(true)}>
+                <FontAwesome name="building" size={20} color="#fff" />
+            </TouchableOpacity>
 
             <TouchableOpacity style={styles.fab} onPress={openModal}>
                 <FontAwesome name="plus" size={24} color="#fff" />
@@ -221,6 +262,70 @@ export default function ManageRoutes() {
                     </ScrollView>
                 </View>
             </Modal>
+
+            {/* Add City Modal */}
+            <Modal visible={cityModalVisible} animationType="slide" presentationStyle="pageSheet">
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalHeader}>
+                        <Text style={styles.modalTitle}>Add City</Text>
+                        <TouchableOpacity onPress={() => setCityModalVisible(false)}>
+                            <Text style={styles.closeText}>Close</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <ScrollView contentContainerStyle={styles.form}>
+                        <Text style={styles.label}>City Name</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={cityFormData.name}
+                            onChangeText={(t) => setCityFormData({ ...cityFormData, name: t })}
+                            placeholder="e.g. Hyderabad"
+                        />
+
+                        <Text style={styles.label}>State</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={cityFormData.state}
+                            onChangeText={(t) => setCityFormData({ ...cityFormData, state: t })}
+                            placeholder="e.g. Telangana"
+                        />
+
+                        <Text style={styles.label}>City Code</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={cityFormData.code}
+                            onChangeText={(t) => setCityFormData({ ...cityFormData, code: t })}
+                            placeholder="e.g. HYD"
+                            autoCapitalize="characters"
+                            maxLength={3}
+                        />
+
+                        <TouchableOpacity
+                            style={styles.checkboxContainer}
+                            onPress={() => setCityFormData({ ...cityFormData, is_popular: !cityFormData.is_popular })}
+                        >
+                            <FontAwesome
+                                name={cityFormData.is_popular ? "check-square" : "square-o"}
+                                size={24}
+                                color={Colors.primary}
+                            />
+                            <Text style={styles.checkboxLabel}>Is Popular City?</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.saveBtn, submitting && styles.disabledBtn]}
+                            onPress={handleCitySubmit}
+                            disabled={submitting}
+                        >
+                            {submitting ? (
+                                <ActivityIndicator color="#fff" />
+                            ) : (
+                                <Text style={styles.saveBtnText}>Add City</Text>
+                            )}
+                        </TouchableOpacity>
+                    </ScrollView>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -289,6 +394,22 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         shadowColor: Colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 6,
+    },
+    addCityFab: {
+        position: 'absolute',
+        bottom: 96,
+        right: 24,
+        backgroundColor: '#10B981',
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#10B981',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,
@@ -372,5 +493,15 @@ const styles = StyleSheet.create({
     activeCityText: {
         color: '#4F46E5',
         fontWeight: '600',
+    },
+    checkboxContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 16,
+    },
+    checkboxLabel: {
+        marginLeft: 8,
+        fontSize: 16,
+        color: '#374151',
     },
 });

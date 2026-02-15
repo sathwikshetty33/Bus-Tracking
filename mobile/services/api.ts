@@ -2,7 +2,7 @@ import axios, { AxiosInstance, AxiosError } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Base URL - Deployed backend
-const BASE_URL = 'https://bus-4o8c.vercel.app';
+const BASE_URL = 'https://bus-tracking-taupe.vercel.app';
 
 const TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';

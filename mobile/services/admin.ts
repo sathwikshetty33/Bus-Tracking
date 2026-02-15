@@ -70,6 +70,22 @@ export const adminService = {
         return response.data;
     },
 
+    // Schedule Management
+    getSchedules: async (skip = 0, limit = 100) => {
+        const response = await api.get(`/admin/schedules?skip=${skip}&limit=${limit}`);
+        return response.data;
+    },
+
+    createSchedule: async (scheduleData: any) => {
+        const response = await api.post('/admin/schedules', scheduleData);
+        return response.data;
+    },
+
+    deleteSchedule: async (id: number) => {
+        const response = await api.delete(`/admin/schedules/${id}`);
+        return response.data;
+    },
+
     // Ticket Management
     getBookings: async (skip = 0, limit = 100) => {
         const response = await api.get<Booking[]>(`/admin/bookings?skip=${skip}&limit=${limit}`);

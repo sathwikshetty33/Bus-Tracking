@@ -75,6 +75,13 @@ export default function AdminDashboard() {
             color: ['#D97706', '#B45309'],
             count: stats.bookings,
         },
+        {
+            title: 'Manage Schedules',
+            icon: 'calendar',
+            route: '/(admin)/manage-schedules',
+            color: ['#8B5CF6', '#7C3AED'],
+            count: 0, // We could fetch this if we update getStats
+        },
     ];
 
     if (loading) {
