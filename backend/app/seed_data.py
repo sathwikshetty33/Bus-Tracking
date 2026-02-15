@@ -181,9 +181,10 @@ def create_buses(db: Session, operators):
 
 
 def create_schedules_bulk(db: Session, buses, routes):
-    """Create bus schedules for Dec 12, 2025 to Jan 31, 2026."""
-    start_date = date(2025, 12, 12)
-    end_date = date(2026, 1, 31)
+    """Create bus schedules for past 1 month and future 2 months."""
+    today = date.today()
+    start_date = today - timedelta(days=30)
+    end_date = today + timedelta(days=60)
     
     # 20 departure times throughout the day
     departure_times = [

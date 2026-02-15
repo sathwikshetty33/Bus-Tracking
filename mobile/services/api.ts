@@ -33,21 +33,21 @@ api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as any;
-    
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      
+
       try {
         const refreshToken = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
         if (refreshToken) {
           const response = await axios.post(`${BASE_URL}/auth/refresh`, {
             refresh_token: refreshToken,
           });
-          
+
           const { access_token, refresh_token } = response.data;
           await AsyncStorage.setItem(TOKEN_KEY, access_token);
           await AsyncStorage.setItem(REFRESH_TOKEN_KEY, refresh_token);
-          
+
           originalRequest.headers.Authorization = `Bearer ${access_token}`;
           return api(originalRequest);
         }
@@ -57,7 +57,7 @@ api.interceptors.response.use(
         return Promise.reject(refreshError);
       }
     }
-    
+
     return Promise.reject(error);
   }
 );

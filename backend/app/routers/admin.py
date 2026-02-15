@@ -55,8 +55,9 @@ def get_operators(db: Session = Depends(get_db), current_user: User = Depends(ch
 
 # Bus Management
 @router.get("/buses")
+@router.get("/buses")
 def get_buses(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: User = Depends(check_admin)):
-    return db.query(Bus).offset(skip).limit(limit).all()
+    return db.query(Bus).options(joinedload(Bus.operator)).offset(skip).limit(limit).all()
 
 @router.post("/buses")
 def create_bus(bus: BusCreate, db: Session = Depends(get_db), current_user: User = Depends(check_admin)):
