@@ -40,7 +40,20 @@ export default function RegisterScreen() {
     }
 
     if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      Alert.alert('Error', 'Password must be at least 6 characters long');
+      return;
+    }
+
+    // Optional: Add more strict password policy if requested (e.g. special char)
+    // User said "Password charater required", usually implies special char or just length? 
+    // Let's at least enforce length strictly.
+    // IF user wants "Password character required", maybe they mean at least one letter?
+    // Let's add a simple check for at least one letter and number for better security.
+    const hasLetter = /[a-zA-Z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+
+    if (!hasLetter || !hasNumber) {
+      Alert.alert('Error', 'Password must contain at least one letter and one number');
       return;
     }
 

@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   View,
   Text,
+  Modal,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,6 +21,14 @@ export default function SearchResultsScreen() {
   const [buses, setBuses] = useState<BusSchedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<'price_asc' | 'price_desc' | null>(null);
+  const [sortModalVisible, setSortModalVisible] = useState(false);
+
+  const sortedBuses = [...buses].sort((a, b) => {
+    if (sortBy === 'price_asc') return a.base_price - b.base_price;
+    if (sortBy === 'price_desc') return b.base_price - a.base_price;
+    return 0;
+  });
 
   useEffect(() => {
     searchBuses();
@@ -155,10 +164,21 @@ export default function SearchResultsScreen() {
           </Text>
           <Text style={styles.dateText}>{date} • {buses.length} buses found</Text>
         </View>
+
+        <TouchableOpacity
+          style={styles.sortButton}
+          onPress={() => setSortModalVisible(true)}
+        >
+          <FontAwesome name="sort" size={14} color={Colors.primary} />
+          <Text style={styles.sortButtonText}>
+            {sortBy === 'price_asc' ? 'Price: Low to High' :
+              sortBy === 'price_desc' ? 'Price: High to Low' : 'Sort'}
+          </Text>
+        </TouchableOpacity>
       </LinearGradient>
 
       <FlatList
-        data={buses}
+        data={sortedBuses}
         renderItem={renderBus}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContent}
@@ -169,6 +189,49 @@ export default function SearchResultsScreen() {
           </View>
         }
       />
+
+      <Modal
+        visible={sortModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setSortModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setSortModalVisible(false)}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Sort By</Text>
+
+            <TouchableOpacity
+              style={[styles.sortOption, sortBy === 'price_asc' && styles.sortOptionActive]}
+              onPress={() => {
+                setSortBy('price_asc');
+                setSortModalVisible(false);
+              }}
+            >
+              <Text style={[styles.sortOptionText, sortBy === 'price_asc' && styles.sortOptionTextActive]}>
+                Price: Low to High
+              </Text>
+              {sortBy === 'price_asc' && <FontAwesome name="check" size={16} color={Colors.primary} />}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.sortOption, sortBy === 'price_desc' && styles.sortOptionActive]}
+              onPress={() => {
+                setSortBy('price_desc');
+                setSortModalVisible(false);
+              }}
+            >
+              <Text style={[styles.sortOptionText, sortBy === 'price_desc' && styles.sortOptionTextActive]}>
+                Price: High to Low
+              </Text>
+              {sortBy === 'price_desc' && <FontAwesome name="check" size={16} color={Colors.primary} />}
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -382,5 +445,60 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
     color: Colors.primary,
+  },
+  sortButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginTop: 8,
+  },
+  sortButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.primary,
+    marginLeft: 6,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 40,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1A1A2E',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  sortOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  sortOptionActive: {
+    backgroundColor: '#F0F9FF',
+    marginHorizontal: -20,
+    paddingHorizontal: 20,
+  },
+  sortOptionText: {
+    fontSize: 16,
+    color: '#6B7280',
+  },
+  sortOptionTextActive: {
+    color: Colors.primary,
+    fontWeight: '600',
   },
 });

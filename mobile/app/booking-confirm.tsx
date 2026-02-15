@@ -89,9 +89,18 @@ export default function BookingConfirmScreen() {
   const handleBooking = async () => {
     if (!validatePassengers()) return;
 
-    if (paymentMethod === 'wallet' && wallet && wallet.balance < amount) {
-      Alert.alert('Insufficient Balance', 'Please add money to your wallet or choose another payment method');
-      return;
+    if (paymentMethod === 'wallet') {
+      if (!wallet) {
+        Alert.alert('Error', 'Wallet information not available');
+        return;
+      }
+      if (wallet.balance < amount) {
+        Alert.alert(
+          'Insufficient Balance',
+          `Your wallet balance (₹${wallet.balance.toFixed(2)}) is insufficient for this booking (₹${amount.toFixed(2)}). Please add money to your wallet.`
+        );
+        return;
+      }
     }
 
     Alert.alert(

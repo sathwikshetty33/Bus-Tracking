@@ -40,10 +40,14 @@ export default function LoginScreen() {
         router.replace('/(tabs)');
       }
     } catch (error: any) {
-      Alert.alert(
-        'Login Failed',
-        error.response?.data?.detail || 'Invalid email or password'
-      );
+      if (error.response?.status === 401) {
+        Alert.alert('Login Failed', 'Password incorrect or user not found');
+      } else {
+        Alert.alert(
+          'Login Failed',
+          error.response?.data?.detail || 'Invalid email or password'
+        );
+      }
     } finally {
       setLoading(false);
     }

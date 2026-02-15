@@ -8,6 +8,8 @@ import {
   Alert,
   View,
   Text,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -22,20 +24,30 @@ export default function HomeScreen() {
   const [toCity, setToCity] = useState('');
   const [travelDate, setTravelDate] = useState('');
   const [popularCities, setPopularCities] = useState<City[]>([]);
+  const [allCities, setAllCities] = useState<City[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // Modal State
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectingField, setSelectingField] = useState<'from' | 'to' | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
   useEffect(() => {
-    loadPopularCities();
+    loadCities();
     // Set default date to tomorrow
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     setTravelDate(tomorrow.toISOString().split('T')[0]);
   }, []);
 
-  const loadPopularCities = async () => {
+  const loadCities = async () => {
     try {
-      const cities = await busService.getCities(undefined, true);
-      setPopularCities(cities);
+      const [popular, all] = await Promise.all([
+        busService.getCities(undefined, true),
+        busService.getCities()
+      ]);
+      setPopularCities(popular);
+      setAllCities(all);
     } catch (error) {
       console.error('Failed to load cities:', error);
     }
@@ -68,13 +80,36 @@ export default function HomeScreen() {
     setToCity(temp);
   };
 
-  const selectCity = (cityName: string, field: 'from' | 'to') => {
-    if (field === 'from') {
+  const openCityModal = (field: 'from' | 'to') => {
+    setSelectingField(field);
+    setSearchQuery('');
+    setModalVisible(true);
+  };
+
+  const selectCity = (cityName: string) => {
+    if (selectingField === 'from') {
+      setFromCity(cityName);
+    } else if (selectingField === 'to') {
+      setToCity(cityName);
+    }
+    setModalVisible(false);
+  };
+
+  // Helper to directly select from popular chips without modal if needed, 
+  // or pass to the selectCity function 
+  const quickSelectCity = (cityName: string, field: 'from' | 'to') => {
+    // If the field is empty, fill it. If "From" is filled, fill "To".
+    if (field === 'from' || !fromCity) {
       setFromCity(cityName);
     } else {
       setToCity(cityName);
     }
   };
+
+  const filteredCities = allCities.filter(city =>
+    city.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    city.code.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -92,21 +127,17 @@ export default function HomeScreen() {
       {/* Search Card */}
       <View style={styles.searchCard}>
         {/* From City */}
-        <View style={styles.inputRow}>
+        <TouchableOpacity style={styles.inputRow} onPress={() => openCityModal('from')}>
           <View style={styles.inputIconContainer}>
             <FontAwesome name="circle-o" size={14} color={Colors.success} />
           </View>
           <View style={styles.inputWrapper}>
             <Text style={styles.inputLabel}>FROM</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter departure city"
-              placeholderTextColor="#9CA3AF"
-              value={fromCity}
-              onChangeText={setFromCity}
-            />
+            <Text style={[styles.inputText, !fromCity && styles.placeholderText]}>
+              {fromCity || 'Select departure city'}
+            </Text>
           </View>
-        </View>
+        </TouchableOpacity>
 
         {/* Swap Button */}
         <TouchableOpacity style={styles.swapButton} onPress={swapCities}>
@@ -116,21 +147,17 @@ export default function HomeScreen() {
         <View style={styles.divider} />
 
         {/* To City */}
-        <View style={styles.inputRow}>
+        <TouchableOpacity style={styles.inputRow} onPress={() => openCityModal('to')}>
           <View style={styles.inputIconContainer}>
             <FontAwesome name="map-marker" size={16} color={Colors.primary} />
           </View>
           <View style={styles.inputWrapper}>
             <Text style={styles.inputLabel}>TO</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter destination city"
-              placeholderTextColor="#9CA3AF"
-              value={toCity}
-              onChangeText={setToCity}
-            />
+            <Text style={[styles.inputText, !toCity && styles.placeholderText]}>
+              {toCity || 'Select destination city'}
+            </Text>
           </View>
-        </View>
+        </TouchableOpacity>
 
         <View style={styles.divider} />
 
@@ -183,7 +210,7 @@ export default function HomeScreen() {
             <TouchableOpacity
               key={city.id}
               style={styles.cityChip}
-              onPress={() => selectCity(city.name, fromCity ? 'to' : 'from')}
+              onPress={() => quickSelectCity(city.name, fromCity ? 'to' : 'from')}
             >
               <Text style={styles.cityChipText}>{city.name}</Text>
             </TouchableOpacity>
@@ -224,6 +251,45 @@ export default function HomeScreen() {
       </View>
 
       <View style={{ height: 30 }} />
+
+      {/* City Selection Modal */}
+      <Modal visible={modalVisible} animationType="slide" presentationStyle="pageSheet">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Select City</Text>
+            <TouchableOpacity onPress={() => setModalVisible(false)}>
+              <Text style={styles.closeText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.searchContainer}>
+            <FontAwesome name="search" size={16} color="#9CA3AF" style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search city or code..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoFocus
+            />
+          </View>
+
+          <FlatList
+            data={filteredCities}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => (
+              <TouchableOpacity style={styles.cityItem} onPress={() => selectCity(item.name)}>
+                <View>
+                  <Text style={styles.cityName}>{item.name}</Text>
+                  <Text style={styles.cityState}>{item.state}</Text>
+                </View>
+                <Text style={styles.cityCode}>{item.code}</Text>
+              </TouchableOpacity>
+            )}
+            ItemSeparatorComponent={() => <View style={styles.separator} />}
+          />
+        </View>
+      </Modal>
+
     </ScrollView>
   );
 }
@@ -289,6 +355,14 @@ const styles = StyleSheet.create({
     color: '#1A1A2E',
     fontWeight: '500',
     padding: 0,
+  },
+  inputText: {
+    fontSize: 16,
+    color: '#1A1A2E',
+    fontWeight: '500',
+  },
+  placeholderText: {
+    color: '#9CA3AF',
   },
   swapButton: {
     position: 'absolute',
@@ -398,5 +472,67 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  closeText: {
+    color: '#EF4444',
+    fontSize: 16,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    margin: 16,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 12,
+    fontSize: 16,
+  },
+  cityItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+  },
+  cityName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  cityState: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  cityCode: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#9CA3AF',
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#F3F4F6',
+    marginLeft: 16,
   },
 });
