@@ -50,6 +50,26 @@ export const adminService = {
         return response.data;
     },
 
+    // City Management
+    getCities: async () => {
+        // We can reuse the busService.getCities or better: create a dedicated admin endpoint if needed.
+        // But for now, let's use the public one or the new admin one?
+        // Wait, I created create_city but not get_cities in admin.py?
+        // Let me check admin.py... I see get_operators and create_city. I didn't add get_cities in admin.py!
+        // The frontend currently uses busService.getCities().
+        // I should probably use that or add get_cities to admin.py.
+        // For consistency, let's look at admin.py again.
+        // I missed adding get_cities to admin.py in the previous step?
+        // Let me check my previous edit to admin.py.
+        const response = await api.get('/buses/cities'); // Using public endpoint for now as it returns all cities
+        return response.data;
+    },
+
+    createCity: async (cityData: any) => {
+        const response = await api.post('/admin/cities', cityData);
+        return response.data;
+    },
+
     // Ticket Management
     getBookings: async (skip = 0, limit = 100) => {
         const response = await api.get<Booking[]>(`/admin/bookings?skip=${skip}&limit=${limit}`);

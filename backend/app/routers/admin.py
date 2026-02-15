@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session, joinedload
 from typing import List
 from ..database import get_db
 from ..models.user import User
-from ..models.bus import Bus, Route, BusSchedule, Seat, Operator
+from ..models.bus import Bus, Route, BusSchedule, Seat, Operator, City
 from ..models.booking import Booking
 from ..schemas.user import UserResponse
 from ..utils.dependencies import get_current_user
@@ -26,6 +26,12 @@ class RouteCreate(BaseModel):
     to_city_id: int
     distance_km: float
     duration_minutes: int
+
+class CityCreate(BaseModel):
+    name: str
+    state: str
+    code: str
+    is_popular: bool = False
 
 def check_admin(user: User = Depends(get_current_user)):
     if user.role != "admin" and user.role != "admin123": # responding to user prompt admin123 requirement
@@ -53,8 +59,16 @@ def get_stats(db: Session = Depends(get_db), current_user: User = Depends(check_
 def get_operators(db: Session = Depends(get_db), current_user: User = Depends(check_admin)):
     return db.query(Operator).all()
 
+# City Management
+@router.post("/cities")
+def create_city(city: CityCreate, db: Session = Depends(get_db), current_user: User = Depends(check_admin)):
+    db_city = City(**city.dict())
+    db.add(db_city)
+    db.commit()
+    db.refresh(db_city)
+    return db_city
+
 # Bus Management
-@router.get("/buses")
 @router.get("/buses")
 def get_buses(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: User = Depends(check_admin)):
     return db.query(Bus).options(joinedload(Bus.operator)).offset(skip).limit(limit).all()
@@ -93,7 +107,7 @@ def delete_bus(bus_id: int, db: Session = Depends(get_db), current_user: User = 
 # Route Management
 @router.get("/routes")
 def get_routes(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: User = Depends(check_admin)):
-    return db.query(Route).offset(skip).limit(limit).all()
+    return db.query(Route).options(joinedload(Route.from_city), joinedload(Route.to_city)).offset(skip).limit(limit).all()
 
 @router.post("/routes")
 def create_route(route: RouteCreate, db: Session = Depends(get_db), current_user: User = Depends(check_admin)):
